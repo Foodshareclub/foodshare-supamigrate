@@ -46,6 +46,7 @@ jobs:
           python3 -m pip install --upgrade supabase
           python3 -m pip install --upgrade google-colab
           python3 -m pip install --upgrade os-sys
+          python3 -m pip install --upgrade nteract-scrapbook
 
       - id: python
         name: Python Setup & Packages Installation

@@ -1,34 +1,56 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Jupyter
+
+# Controls when the workflow will run
 on:
-  release:
-    types: [published]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */1 * * *'
 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-
-  deploy_to_main:
-    name: Deploy app to the MobiledgeX main setup
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-
-      - name: Check out the repo
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - id: repo 
+        name: Repo Checkout
         uses: actions/checkout@v2
 
-      - name: Push to Gitlab
-        uses: docker/build-push-action@v1
+      - id: python
+        name: Python Setup & Packages Installation
+        uses: actions/setup-python@v2
         with:
-          username: ${{ secrets.MOBILEDGEX_USERNAME }}
-          password: ${{ secrets.MOBILEDGEX_PASSWORD }}
-          registry: docker.mobiledgex.net
-          repository: venkydev/images/github-deploy
-          tag_with_ref: true
+          python-version: '3.9'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
 
-      - name: Deploy to MobiledgeX
-        id: deploy
-        uses: mobiledgex/deploy-app-action@v1.1
-        with:
-          setup: main
-          username: ${{ secrets.MOBILEDGEX_USERNAME }}
-          password: ${{ secrets.MOBILEDGEX_PASSWORD }}
+      - id: jupyter 
+        name: Jupyter Notebook Execution
+        run: jupyter execute download.ipynb
+        shell: bash 
 
-      - name: Print output
-        run: echo "Image ${{ steps.deploy.outputs.image }}, Deployments ${{ steps.deploy.outputs.deployments }}"
+ # Add new files in folder, commit along with other modified files, push
+      - id: commit
+        name: Commit files
+        run:
+          git config --local user.name actions-user
+
+          git config --local user.email "actions@github.com"
+
+          git add *
+
+          git commit -am "GH ACTION Headlines $(date)"
+
+          git push origin main
+
+        env:
+          REPO_KEY: ${{secrets.GITHUB_TOKEN}}
+
+          username: github-actions

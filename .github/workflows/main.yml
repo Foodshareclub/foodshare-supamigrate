@@ -91,15 +91,12 @@ jobs:
       - name: Commit files
         run:
           git config --local user.name actions-user
-
           git config --local user.email "actions@github.com"
 
+          git checkout main
           git add *
-
           git commit -am "GH ACTION Headlines $(date)"
-
-          git push origin main
-
+          git push dev
         env:
           REPO_KEY: ${{secrets.GITHUB_TOKEN}}
 

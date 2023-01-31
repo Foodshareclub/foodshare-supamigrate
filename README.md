@@ -149,7 +149,7 @@ for bucket in buckets:
 # Backup of DB & storage files:
 
 You can use the following colab to download your storage objects and the DB.sql data:
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mansueli/Supa-Migrate/blob/main/Backup_Project_%26_Storage.ipynb#scrollTo=_gS4xrZzVkl3)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/196mgq-OrG-OTSkI0CaKXlixYbI4wEETs)
 
 ``` bash
 #!/usr/bin/env bash

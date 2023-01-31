@@ -38,14 +38,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -VV
-          python -m site
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --upgrade coverage[toml] tox tox-gh-actions
-          python -m pip install --upgrade jupyter
-          python -m pip install --upgrade supabase
-          python -m pip install --upgrade google-colab
-          python -m pip install --upgrade os-sys
+          python3 -VV
+          python3 -m site
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install --upgrade coverage[toml] tox tox-gh-actions
+          python3 -m pip install --upgrade jupyter
+          python3 -m pip install --upgrade supabase
+          python3 -m pip install --upgrade google-colab
+          python3 -m pip install --upgrade os-sys
 
       - id: python
         name: Python Setup & Packages Installation

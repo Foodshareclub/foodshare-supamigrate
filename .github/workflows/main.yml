@@ -35,9 +35,9 @@ jobs:
           python-version: '3.9'
           cache: 'pip'
           run: 'echo ls -la'
-          cache-dependency-path: '**/setup.py'
-#           cache-dependency-path: "${{ github.action_path }}/requirements.txt" # file not found
-#       - run: pip install -r requirements.txt
+#           cache-dependency-path: '**/setup.py'
+          cache-dependency-path: "${{ github.action_path }}/requirements.txt" # file not found
+      - run: pip install -r requirements.txt
 
       - id: jupyter 
         name: Jupyter Notebook Execution

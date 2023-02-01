@@ -6,10 +6,10 @@ name: DB backup
 # Controls when the workflow will run
 on:
   # Allows you to run this workflow manually from the Actions tab
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [main]
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
   schedule:
     - cron: '0 */6 * * *'

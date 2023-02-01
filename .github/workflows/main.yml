@@ -3,7 +3,6 @@
 # name: Jupyter
 name: DB backup
 
-
 # Controls when the workflow will run
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -13,7 +12,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '0 */1 * * *'
+    - cron: '0 */6 * * *'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:   

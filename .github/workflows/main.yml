@@ -32,4 +32,4 @@ jobs:
           git config --local user.name "GitHub Actions"
           git add .
           git commit -m "Results from R script" || echo "No changes to commit"
-          git push dev || echo "No changes to commit"-
+          git push main || echo "No changes to commit"

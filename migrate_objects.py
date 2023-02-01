@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
+
+from dotenv import load_dotenv
+
+load_dotenv()
+foodshare_project_ref = os.getenv('foodshare_project_ref')
+postgres_project_ref = os.getenv('postgres_project_ref')
+foodshare_service_key = os.getenv('foodshare_service_key')
+postgres_service_key = os.getenv('postgres_service_key')
+
+
 #Edit here:
-OLD_DB_URL='https://old_project_ref.supabase.co'
-NEW_DB_URL='https://new_project_ref.supabase.co'
-OLD_SERVICE_KEY = 'eyJ0000J9.eyJQ.oPyK-LSECRET-aC1I'
-NEW_SERVICE_KEY = 'eyJ0000J9.eyJpSERVICE_ROLE.d4tffFJoc8iHsk_KEY'
+OLD_DB_URL='https://foodshare_project_ref.supabase.co'
+NEW_DB_URL='https://postgres_project_ref.supabase.co'
+OLD_SERVICE_KEY='foodshare_service_key'
+NEW_SERVICE_KEY='postgres_service_key'
 
 # Script:
 from supabase import create_client

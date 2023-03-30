@@ -19,12 +19,12 @@ jobs:
    run_db_backup:
     runs-on: ubuntu-latest
     steps:
-      # - uses: actions/checkout@v3
-      # - name: Run script file
-      #   run: |
-      #      chmod +x ./backup_database.sh
-      #      ./backup_database.sh
-      #   shell: bash   
+      - uses: actions/checkout@v3
+      - name: Run script file
+        run: |
+           chmod +x ./backup_database.sh
+           ./backup_database.sh
+        shell: bash   
       
       # - name: Commit results
       #   run: |

@@ -19,23 +19,28 @@ jobs:
    run_db_backup:
     runs-on: ubuntu-latest
     steps:
-      # - uses: actions/checkout@v3
-      # - name: Run script file
-      #   run: |
-      #      chmod +x ./backup_database.sh
-      #      ./backup_database.sh
-      #   shell: bash   
-      
-      # - name: Commit results
-      #   run: |
-      #     git config --local user.email "actions@github.com"
-      #     git config --local user.name "GitHub Actions"
-      #     git add .
-      #     git commit -m "Results from R script" || echo "No changes to commit"
-      #     git push origin || echo "No changes to commit"
+      - name: Backup production
+        run: |
+          mkdir -p /tmp/supabase_backup
+
+          pg_dump postgres://postgres:"$PROD_DB_PASS"@"$PROD_DB_URL":6543/postgres \
+            --clean \
+            --if-exists \
+            --quote-all-identifiers \
+            --exclude-table-data 'storage.objects' \
+            --exclude-schema 'extensions|graphql|graphql_public|net|pgbouncer|pgsodium|pgsodium_masks|realtime|supabase_functions|storage|pg_*|information_schema' \
+            --schema '*' > /tmp/supabase_backup/dump.sql
+          sed -i -e 's/^DROP SCHEMA IF EXISTS "auth";$/-- DROP SCHEMA IF EXISTS "auth";/' /tmp/supabase_backup/dump.sql
+          sed -i -e's/^DROP SCHEMA IF EXISTS "storage";$/-- DROP SCHEMA IF EXISTS "storage";/' /tmp/supabase_backup/dump.sql
+          sed -i -e 's/^CREATE SCHEMA "auth";$/-- CREATE SCHEMA "auth";/' /tmp/supabase_backup/dump.sql
+          sed -i -e 's/^CREATE SCHEMA "storage";$/-- CREATE SCHEMA "storage";/' /tmp/supabase_backup/dump.sql
+          sed -i -e 's/^ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/-- ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/' /tmp/supabase_backup/dump.sql
+        env:
+          PROD_DB_URL: 'db.iazmjdjwnkilycbjwpzp.supabase.co'
+          PROD_DB_PASS: '${{ secrets.DB_PASSWORD }}'
       - uses: actions/upload-artifact@v2
         name: Save backup as artifact
         with:
           name: Backup
-          path: /tmp/supabase_backup
+          path: ./dump.sql # <= upload folder
           retention-days: 14

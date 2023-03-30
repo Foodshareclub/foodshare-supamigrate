@@ -28,7 +28,7 @@ jobs:
          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
          sudo apt update
          sudo apt install postgresql-15 postgresql-client-15 -y
-         /usr/lib/postgresql/15/bin/pg_dump --clean --if-exists --quote-all-identifiers --schema '*' --exclude-schema 'extensions|graphql|graphql_public|net|pgbouncer|pgsodium|pgsodium_masks|realtime|supabase_functions|storage|pg_*|information_schema' -d postgres://postgres:${{ secrets.SUPABASE_PASSWORD }}@${{ secrets.SUPABASE_URL }}:6543/postgres > dump.sql
+         /usr/lib/postgresql/15/bin/pg_dump --clean --if-exists --quote-all-identifiers --schema '*' --exclude-schema 'extensions|graphql|graphql_public|net|pgbouncer|pgsodium|pgsodium_masks|realtime|supabase_functions|storage|pg_*|information_schema' -d postgres://postgres:${{ secrets.SUPABASE_PASSWORD }}@${{ secrets.SUPABASE_URL }}:5432/postgres > dump.sql
          
      - name: Tweaking the dump file    
        run: |

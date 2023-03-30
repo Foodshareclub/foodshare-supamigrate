@@ -37,5 +37,5 @@ jobs:
         name: Save backup as artifact
         with:
           name: Backup
-          path: /tmp/supabase_backup
+          path: ./tmp/supabase_backup
           retention-days: 14

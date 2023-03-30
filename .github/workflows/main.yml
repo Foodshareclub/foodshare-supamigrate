@@ -26,10 +26,16 @@ jobs:
            ./backup_database.sh
         shell: bash   
       
-      - name: Commit results
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-          git add .
-          git commit -m "Results from R script" || echo "No changes to commit"
-          git push origin || echo "No changes to commit"
+      # - name: Commit results
+      #   run: |
+      #     git config --local user.email "actions@github.com"
+      #     git config --local user.name "GitHub Actions"
+      #     git add .
+      #     git commit -m "Results from R script" || echo "No changes to commit"
+      #     git push origin || echo "No changes to commit"
+      - uses: actions/upload-artifact@v2
+        name: Save backup as artifact
+        with:
+          name: Backup
+          path: /tmp/supabase_backup
+          retention-days: 14

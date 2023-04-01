@@ -35,8 +35,8 @@ jobs:
           sed -i -e 's/^CREATE SCHEMA "storage";$/-- CREATE SCHEMA "storage";/' /tmp/supabase_backup/dump.sql
           sed -i -e 's/^ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/-- ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/' /tmp/supabase_backup/dump.sql
         env:
-          PROD_DB_URL: 'db.iazmjdjwnkilycbjwpzp.supabase.co'
-          SUPABASE_PASSWORD: 'SnzHUJMOUQAJDciw'
+          PROD_DB_URL: '${{ secrets.PROD_DB_URL }}'
+          SUPABASE_PASSWORD: '${{ secrets.SUPABASE_PASSWORD }}'
       - uses: actions/upload-artifact@v2
         name: Save backup as artifact
         with:

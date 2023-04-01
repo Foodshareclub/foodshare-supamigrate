@@ -34,22 +34,6 @@ jobs:
           sed -i -e 's/^CREATE SCHEMA "auth";$/-- CREATE SCHEMA "auth";/' /tmp/supabase_backup/dump.sql
           sed -i -e 's/^CREATE SCHEMA "storage";$/-- CREATE SCHEMA "storage";/' /tmp/supabase_backup/dump.sql
           sed -i -e 's/^ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/-- ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/' /tmp/supabase_backup/dump.sql
-
-
-          # pg_dump postgres://postgres:"$SUPABASE_PASSWORD"@"$PROD_DB_URL":6543/postgres \
-          #   --clean \
-          #   --if-exists \
-          #   --quote-all-identifiers \
-          #   --exclude-table-data 'storage.objects' \
-          #   --exclude-schema 'extensions|graphql|graphql_public|net|pgbouncer|pgsodium|pgsodium_masks|realtime|supabase_functions|storage|pg_*|information_schema' \
-          #   --schema '*' > dump.sql 
-
-          # sed "${sedi[@]}" -e 's/^DROP SCHEMA IF EXISTS "auth";$/-- DROP SCHEMA IF EXISTS "auth";/' dump.sql
-          # sed "${sedi[@]}" -e's/^DROP SCHEMA IF EXISTS "storage";$/-- DROP SCHEMA IF EXISTS "storage";/' dump.sql
-          # sed "${sedi[@]}" -e 's/^CREATE SCHEMA "auth";$/-- CREATE SCHEMA "auth";/' dump.sql
-          # sed "${sedi[@]}" -e 's/^CREATE SCHEMA "storage";$/-- CREATE SCHEMA "storage";/' dump.sql
-          # sed "${sedi[@]}" -e 's/^ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/-- ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/' dump.sql
-
         env:
           PROD_DB_URL: 'db.iazmjdjwnkilycbjwpzp.supabase.co'
           SUPABASE_PASSWORD: 'SnzHUJMOUQAJDciw'

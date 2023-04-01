@@ -18,7 +18,7 @@ pg_dump postgres://postgres:"$OLD_DB_PASS"@"$OLD_DB_URL":6543/postgres \
   --clean \
   --if-exists \
   --quote-all-identifiers \
-  --exclude-table 'topology.*' \
+  # --exclude-table 'topology.*' \
   --exclude-table-data 'storage.objects' \
   --exclude-schema 'extensions|graphql|graphql_public|net|pgbouncer|pgsodium|pgsodium_masks|realtime|supabase_functions|storage|pg_*|information_schema' \
   --schema '*' > dump.sql 

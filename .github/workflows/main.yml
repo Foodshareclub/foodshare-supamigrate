@@ -25,6 +25,7 @@ jobs:
             --clean \
             --if-exists \
             --quote-all-identifiers \
+            --exclude-table 'topology.*' \
             --exclude-table-data 'storage.objects' \
             --exclude-schema 'extensions|graphql|graphql_public|net|pgbouncer|pgsodium|pgsodium_masks|realtime|supabase_functions|storage|pg_*|information_schema' \
             --schema '*' > /tmp/supabase_backup/dump.sql

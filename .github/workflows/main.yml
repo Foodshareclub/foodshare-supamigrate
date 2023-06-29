@@ -1,45 +1,45 @@
-# This is a basic workflow to help you get started with Actions
-name: DB backup
-
-# Controls when the workflow will run
+name: SupaStorage-backup
 on:
   # Allows you to run this workflow manually from the Actions tab
   push:
     branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:   
-   run_db_backup:
+    - cron: '0 0 * * *' # Runs every day at midnight
+jobs:
+  backup:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+    permissions:
+      contents: write
     steps:
-      - name: Backup production
-        run: |
-          mkdir -p /tmp/supabase_backup
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+         ref: ${{ github.head_ref }}
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-          pg_dump postgres://postgres:"$SUPABASE_PASSWORD"@"$PROD_DB_URL":6543/postgres \
-            --clean \
-            --if-exists \
-            --quote-all-identifiers \
-            --exclude-table 'topology.*' \
-            --exclude-table-data 'storage.objects' \
-            --exclude-schema 'extensions|graphql|graphql_public|net|pgbouncer|pgsodium|pgsodium_masks|realtime|supabase_functions|storage|pg_*|information_schema' \
-            --schema '*' > /tmp/supabase_backup/dump.sql
-          sed -i -e 's/^DROP SCHEMA IF EXISTS "auth";$/-- DROP SCHEMA IF EXISTS "auth";/' /tmp/supabase_backup/dump.sql
-          sed -i -e's/^DROP SCHEMA IF EXISTS "storage";$/-- DROP SCHEMA IF EXISTS "storage";/' /tmp/supabase_backup/dump.sql
-          sed -i -e 's/^CREATE SCHEMA "auth";$/-- CREATE SCHEMA "auth";/' /tmp/supabase_backup/dump.sql
-          sed -i -e 's/^CREATE SCHEMA "storage";$/-- CREATE SCHEMA "storage";/' /tmp/supabase_backup/dump.sql
-          sed -i -e 's/^ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/-- ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin"/' /tmp/supabase_backup/dump.sql
-        env:
-          PROD_DB_URL: '${{ secrets.PROD_DB_URL }}'
-          SUPABASE_PASSWORD: '${{ secrets.SUPABASE_PASSWORD }}'
-      - uses: actions/upload-artifact@v2
-        name: Save backup as artifact
-        with:
-          name: Backup
-          path: /tmp/supabase_backup/dump.sql # <= upload folder
+    - name: Install dependencies
+      run: |
+        pip install supabase
+        mkdir /tmp/supabase_storage_backup
+        cd /tmp/supabase_storage_backup
+        wget https://raw.githubusercontent.com/mansueli/Supa-Migrate/main/storage-backup.py
+        chmod +x storage-backup.py
+        python storage-backup.py
+        rm storage-backup.py
+      shell: bash
+
+    - name: Save backup as artifact
+      uses: actions/upload-artifact@v3
+      with:
+          name: Storage-Backup
+          path: /tmp/supabase_storage_backup # <= upload folder
           retention-days: 14

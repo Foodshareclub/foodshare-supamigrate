@@ -43,7 +43,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  RUSTFLAGS: '-D warnings -C target-feature=+crt-static'
+  RUSTFLAGS: '-D warnings'
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
   CARGO_HTTP_TIMEOUT: 120
@@ -133,13 +133,10 @@ jobs:
 
       - name: Clippy (all targets)
         run: cargo clippy --all-targets --all-features -- -D warnings -D clippy::all -D clippy::pedantic -A clippy::module_name_repetitions
-        env:
-          RUSTFLAGS: '-D warnings'  # Override global RUSTFLAGS (crt-static breaks proc-macros)
 
       - name: Check documentation
         run: cargo doc --no-deps --all-features --document-private-items
         env:
-          RUSTFLAGS: '-D warnings'
           RUSTDOCFLAGS: '-D warnings'
 
   # ---------------------------------------------------------------------------
@@ -392,6 +389,7 @@ jobs:
       - name: Build release
         run: cargo build --release --locked --target ${{ matrix.target }}
         env:
+          RUSTFLAGS: '-D warnings -C target-feature=+crt-static'
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           SUPAMIGRATE_VERSION: ${{ needs.metadata.outputs.version }}
           SUPAMIGRATE_BUILD_DATE: ${{ needs.metadata.outputs.build_date }}

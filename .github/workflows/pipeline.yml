@@ -704,21 +704,28 @@ jobs:
           retention-days: 90
 
   # ---------------------------------------------------------------------------
-  # Daily Backup (Supabase -> MinIO S3)
+  # Backup Jobs (Sequential: Database -> Edge Functions -> Upload)
   # ---------------------------------------------------------------------------
-  backup:
-    name: Daily Backup
+
+  # Job 1: Database Backup (includes schema, data, RLS policies, triggers, functions)
+  backup-database:
+    name: Backup Database
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    outputs:
+      timestamp: ${{ steps.dump.outputs.timestamp }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Backup database
+      - name: Dump PostgreSQL database
+        id: dump
         run: |
           mkdir -p dumps
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          echo "$TIMESTAMP" > dumps/TIMESTAMP
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+          echo "📦 Starting database backup..."
           PGPASSWORD="${{ secrets.SUPABASE_DB_PASS }}" pg_dump \
             -h "${{ secrets.SUPABASE_POOLER_HOST }}" \
             -p 5432 \
@@ -726,98 +733,105 @@ jobs:
             -d postgres \
             --no-owner --no-acl \
             -Fc -f dumps/database_${TIMESTAMP}.dump
+
+          echo "✅ Database dump complete"
           ls -la dumps/
 
-      - name: Backup storage
+      - name: Upload database artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-database
+          path: dumps/*.dump
+          retention-days: 1
+
+  # Job 2: Edge Functions Backup
+  backup-edge-functions:
+    name: Backup Edge Functions
+    runs-on: ubuntu-latest
+    needs: backup-database
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Download edge functions
         run: |
-          mkdir -p dumps/storage
-          SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
-          SERVICE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE }}"
-
-          # List all buckets
-          BUCKETS=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
-            -H "Authorization: Bearer ${SERVICE_KEY}" \
-            -H "apikey: ${SERVICE_KEY}" | jq -r '.[].name // empty')
-
-          echo "Found buckets: $BUCKETS"
-
-          for BUCKET in $BUCKETS; do
-            echo "Backing up bucket: $BUCKET"
-            mkdir -p "dumps/storage/${BUCKET}"
-
-            # List all files in bucket (recursive)
-            FILES=$(curl -s "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
-              -H "Authorization: Bearer ${SERVICE_KEY}" \
-              -H "apikey: ${SERVICE_KEY}" \
-              -H "Content-Type: application/json" \
-              -d '{"prefix":"","limit":10000}' | jq -r '.[].name // empty')
-
-            for FILE in $FILES; do
-              echo "  Downloading: $FILE"
-              mkdir -p "dumps/storage/${BUCKET}/$(dirname "$FILE")"
-              curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILE}" \
-                -H "Authorization: Bearer ${SERVICE_KEY}" \
-                -H "apikey: ${SERVICE_KEY}" \
-                -o "dumps/storage/${BUCKET}/${FILE}" || true
-            done
-          done
-
-          # Create storage archive
-          TIMESTAMP=$(cat dumps/TIMESTAMP)
-          tar -czf "dumps/storage_${TIMESTAMP}.tar.gz" -C dumps/storage . || true
-          rm -rf dumps/storage
-          ls -la dumps/
-
-      - name: Backup edge functions
-        run: |
-          # Install Supabase CLI
-          npm install -g supabase
-
-          # Get project ref from URL
           PROJECT_REF=$(echo "${{ secrets.SUPABASE_URL }}" | sed -n 's|https://\([^.]*\)\.supabase\.co.*|\1|p')
-          echo "Project ref: $PROJECT_REF"
+          echo "📦 Backing up edge functions for project: $PROJECT_REF"
 
           mkdir -p dumps/functions
 
-          # List and download all functions
           FUNCTIONS=$(supabase functions list --project-ref "$PROJECT_REF" 2>/dev/null | tail -n +2 | awk '{print $1}' | grep -v '^$' || true)
 
           if [ -n "$FUNCTIONS" ]; then
             for FUNC_NAME in $FUNCTIONS; do
-              echo "Downloading function: $FUNC_NAME"
+              echo "  Downloading: $FUNC_NAME"
               supabase functions download "$FUNC_NAME" --project-ref "$PROJECT_REF" || true
             done
-
-            # Move downloaded functions to dumps
             mv supabase/functions/* dumps/functions/ 2>/dev/null || true
           fi
 
-          # Create archive
-          TIMESTAMP=$(cat dumps/TIMESTAMP)
+          TIMESTAMP="${{ needs.backup-database.outputs.timestamp }}"
           if [ -d "dumps/functions" ] && [ "$(ls -A dumps/functions 2>/dev/null)" ]; then
             tar -czf "dumps/functions_${TIMESTAMP}.tar.gz" -C dumps/functions .
-            echo "Edge functions backed up successfully"
+            echo "✅ Edge functions backup complete"
           else
-            echo "No edge functions found to backup"
+            echo "⚠️ No edge functions found"
+            touch "dumps/functions_${TIMESTAMP}.tar.gz"
           fi
-          rm -rf dumps/functions supabase/ dumps/TIMESTAMP
           ls -la dumps/
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      - name: Upload functions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-functions
+          path: dumps/*.tar.gz
+          retention-days: 1
+
+  # Job 3: Upload all backups to R2
+  backup-upload:
+    name: Upload to R2
+    runs-on: ubuntu-latest
+    needs: [backup-database, backup-edge-functions]
+
+    steps:
+      - name: Download database backup
+        uses: actions/download-artifact@v4
+        with:
+          name: backup-database
+          path: dumps/
+
+      - name: Download functions backup
+        uses: actions/download-artifact@v4
+        with:
+          name: backup-functions
+          path: dumps/
+
       - name: Upload to Cloudflare R2
         run: |
+          echo "📤 Uploading backups to R2..."
           curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
           ./mc alias set r2 ${{ secrets.R2_ENDPOINT }} \
             ${{ secrets.R2_ACCESS_KEY }} \
             ${{ secrets.R2_SECRET_KEY }}
-          # Upload database and storage backups
+
           DATE=$(date +%Y-%m-%d)
           ./mc cp dumps/*.dump r2/${{ secrets.R2_BUCKET }}/${DATE}/
           ./mc cp dumps/*.tar.gz r2/${{ secrets.R2_BUCKET }}/${DATE}/ || true
+
           # Cleanup: remove backups older than 30 days
           ./mc rm --recursive --force --older-than 30d r2/${{ secrets.R2_BUCKET }}/ || true
-          # Show backup contents
+
+          echo "✅ Upload complete"
           ./mc ls r2/${{ secrets.R2_BUCKET }}/${DATE}/
 

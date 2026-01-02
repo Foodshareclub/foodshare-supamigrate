@@ -714,21 +714,59 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run backup
+      - name: Backup database
         run: |
           mkdir -p dumps
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          echo "$TIMESTAMP" > dumps/TIMESTAMP
           PGPASSWORD="${{ secrets.SUPABASE_DB_PASS }}" pg_dump \
             -h "${{ secrets.SUPABASE_POOLER_HOST }}" \
             -p 5432 \
             -U "${{ secrets.SUPABASE_DB_USER }}" \
             -d postgres \
             --no-owner --no-acl \
-            -Fc -f dumps/backup_${TIMESTAMP}.dump
-          gzip -k dumps/backup_${TIMESTAMP}.dump || true
+            -Fc -f dumps/database_${TIMESTAMP}.dump
           ls -la dumps/
-        env:
-          RUST_LOG: info
+
+      - name: Backup storage
+        run: |
+          mkdir -p dumps/storage
+          SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          SERVICE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE }}"
+
+          # List all buckets
+          BUCKETS=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
+            -H "Authorization: Bearer ${SERVICE_KEY}" \
+            -H "apikey: ${SERVICE_KEY}" | jq -r '.[].name // empty')
+
+          echo "Found buckets: $BUCKETS"
+
+          for BUCKET in $BUCKETS; do
+            echo "Backing up bucket: $BUCKET"
+            mkdir -p "dumps/storage/${BUCKET}"
+
+            # List all files in bucket (recursive)
+            FILES=$(curl -s "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
+              -H "Authorization: Bearer ${SERVICE_KEY}" \
+              -H "apikey: ${SERVICE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{"prefix":"","limit":10000}' | jq -r '.[].name // empty')
+
+            for FILE in $FILES; do
+              echo "  Downloading: $FILE"
+              mkdir -p "dumps/storage/${BUCKET}/$(dirname "$FILE")"
+              curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILE}" \
+                -H "Authorization: Bearer ${SERVICE_KEY}" \
+                -H "apikey: ${SERVICE_KEY}" \
+                -o "dumps/storage/${BUCKET}/${FILE}" || true
+            done
+          done
+
+          # Create storage archive
+          TIMESTAMP=$(cat dumps/TIMESTAMP)
+          tar -czf "dumps/storage_${TIMESTAMP}.tar.gz" -C dumps/storage . || true
+          rm -rf dumps/storage dumps/TIMESTAMP
+          ls -la dumps/
 
       - name: Upload to Cloudflare R2
         run: |
@@ -737,11 +775,12 @@ jobs:
           ./mc alias set r2 ${{ secrets.R2_ENDPOINT }} \
             ${{ secrets.R2_ACCESS_KEY }} \
             ${{ secrets.R2_SECRET_KEY }}
-          # Upload with date folder
+          # Upload database and storage backups
           DATE=$(date +%Y-%m-%d)
           ./mc cp dumps/*.dump r2/${{ secrets.R2_BUCKET }}/${DATE}/
-          # Cleanup: remove backups older than 30 days (keeps ~360MB of 1GB limit)
+          ./mc cp dumps/*.tar.gz r2/${{ secrets.R2_BUCKET }}/${DATE}/ || true
+          # Cleanup: remove backups older than 30 days
           ./mc rm --recursive --force --older-than 30d r2/${{ secrets.R2_BUCKET }}/ || true
-          # Show remaining backups
-          ./mc ls r2/${{ secrets.R2_BUCKET }}/
+          # Show backup contents
+          ./mc ls r2/${{ secrets.R2_BUCKET }}/${DATE}/
 

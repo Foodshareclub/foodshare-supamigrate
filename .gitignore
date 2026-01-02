@@ -1,3 +1,32 @@
-# .env
-# *.sql
-# *.backup
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config with secrets (NEVER commit these)
+supamigrate.toml
+.env
+.env.local
+.env.*.local
+
+# Keep the example
+!.env.example
+
+# Backups
+/backup/
+/storage-backup/
+
+# Test artifacts
+*.sql
+*.sql.gz

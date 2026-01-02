@@ -1,6 +1,0 @@
-jupyterlab
-nbclient
-pandas
-supabase
-google.colab
-os

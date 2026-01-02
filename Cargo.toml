@@ -1,0 +1,65 @@
+[package]
+name = "supamigrate"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Foodshare <hello@foodshare.club>"]
+description = "CLI tool for migrating Supabase projects - database schema, data, and storage"
+license = "Apache-2.0"
+repository = "https://github.com/foodshare-club/supamigrate"
+keywords = ["supabase", "postgresql", "migration", "backup", "cli"]
+categories = ["command-line-utilities", "database"]
+readme = "README.md"
+
+[dependencies]
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Async runtime
+tokio = { version = "1.43", features = ["full"] }
+
+# HTTP client for Supabase Storage API
+reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Logging & progress
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+indicatif = "0.17"
+console = "0.15"
+
+# Utilities
+url = "2.5"
+uuid = { version = "1.11", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tempfile = "3.14"
+futures = "0.3"
+flate2 = "1.0"
+shellexpand = "3.1"
+tokio-util = { version = "0.7", features = ["io"] }
+bytes = "1.9"
+tar = "0.4"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+wiremock = "0.6"
+tokio-test = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[[bin]]
+name = "supamigrate"
+path = "src/main.rs"

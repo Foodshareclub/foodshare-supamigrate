@@ -714,32 +714,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Build supamigrate
-        run: cargo build --release
-
-      - name: Create config
-        run: |
-          # Extract project_ref from PROD_DB_URL (format: db.PROJECT_REF.supabase.co)
-          PROJECT_REF=$(echo "${{ secrets.PROD_DB_URL }}" | sed 's/db\.\(.*\)\.supabase\.co/\1/')
-          cat > supamigrate.toml << EOF
-          [projects.production]
-          project_ref = "${PROJECT_REF}"
-          db_password = "${{ secrets.PROD_DB_PASS }}"
-          service_key = "${{ secrets.SUPABASE_SERVICE_ROLE }}"
-          db_port = 6543
-
-          [defaults]
-          compress_backups = true
-          EOF
-
       - name: Run backup
         run: |
           mkdir -p backup
-          ./target/release/supamigrate backup --project production --output backup/
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          PGPASSWORD="${{ secrets.SUPABASE_DB_PASS }}" pg_dump \
+            -h "${{ secrets.SUPABASE_POOLER_HOST }}" \
+            -p 5432 \
+            -U "${{ secrets.SUPABASE_DB_USER }}" \
+            -d postgres \
+            --no-owner --no-acl \
+            -Fc -f backup/backup_${TIMESTAMP}.dump
+          gzip -k backup/backup_${TIMESTAMP}.dump || true
+          ls -la backup/
         env:
           RUST_LOG: info
 
@@ -753,6 +740,3 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           ./mc cp --recursive backup/ backup/${{ secrets.MINIO_BUCKET }}/${DATE}/
 
-      - name: Cleanup
-        if: always()
-        run: rm -f supamigrate.toml

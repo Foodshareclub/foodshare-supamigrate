@@ -23,8 +23,8 @@ on:
     branches: [main, develop]
     types: [opened, synchronize, reopened]
   schedule:
-    # Weekly security scan (Sunday 2 AM UTC)
-    - cron: '0 2 * * 0'
+    # Daily security scan (2 AM UTC)
+    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       skip_tests:

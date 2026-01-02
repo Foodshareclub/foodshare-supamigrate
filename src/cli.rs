@@ -94,13 +94,13 @@ pub struct BackupArgs {
     #[arg(short, long, default_value = "./backup")]
     pub output: PathBuf,
 
-    /// Include storage objects
+    /// Exclude storage from backup (storage is included by default)
     #[arg(long, default_value = "false")]
-    pub include_storage: bool,
+    pub no_storage: bool,
 
-    /// Include edge functions
+    /// Exclude edge functions from backup
     #[arg(long, default_value = "false")]
-    pub include_functions: bool,
+    pub no_functions: bool,
 
     /// Schema only (no data)
     #[arg(long, default_value = "false")]

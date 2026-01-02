@@ -92,6 +92,7 @@ impl PgRestore {
     }
 
     /// Execute a single SQL command
+    #[allow(dead_code)]
     pub fn execute(&self, sql: &str) -> Result<String> {
         Self::check_available()?;
 

@@ -19,16 +19,12 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     let backup_dir = args.output.join(format!("{}_{}", args.project, timestamp));
     fs::create_dir_all(&backup_dir)?;
 
-    // Full mirror by default: storage included, functions optional
-    let include_storage = !args.no_storage;
-    let include_functions = !args.no_functions;
-
-    println!("\n{} Backup Plan (Full Mirror)", style("📋").bold());
+    println!("\n{} Backup Plan", style("📋").bold());
     println!("  Project: {} ({})", args.project, project.project_ref);
     println!("  Output: {}", backup_dir.display());
     println!("  Schema only: {}", args.schema_only);
-    println!("  Include storage: {}", include_storage);
-    println!("  Include functions: {}", include_functions);
+    println!("  Include storage: {}", args.include_storage);
+    println!("  Include functions: {}", args.include_functions);
     println!("  Compress: {}", args.compress);
 
     // Database backup
@@ -60,7 +56,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     println!("{} Database backup complete!", style("✓").green());
 
     // Edge Functions backup
-    if include_functions {
+    if args.include_functions {
         println!("\n{} Backing up edge functions...", style("⚡").bold());
 
         let service_key = project.service_key.as_ref().ok_or_else(|| {
@@ -110,8 +106,8 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         );
     }
 
-    // Storage backup (included by default for full mirror)
-    if include_storage {
+    // Storage backup
+    if args.include_storage {
         println!("\n{} Backing up storage...", style("📦").bold());
 
         let service_key = project
@@ -134,8 +130,8 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         project_ref: project.project_ref.clone(),
         timestamp: Utc::now().to_rfc3339(),
         schema_only: args.schema_only,
-        include_storage,
-        include_functions,
+        include_storage: args.include_storage,
+        include_functions: args.include_functions,
         compressed: args.compress,
     };
 

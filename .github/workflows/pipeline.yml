@@ -765,8 +765,45 @@ jobs:
           # Create storage archive
           TIMESTAMP=$(cat dumps/TIMESTAMP)
           tar -czf "dumps/storage_${TIMESTAMP}.tar.gz" -C dumps/storage . || true
-          rm -rf dumps/storage dumps/TIMESTAMP
+          rm -rf dumps/storage
           ls -la dumps/
+
+      - name: Backup edge functions
+        run: |
+          # Install Supabase CLI
+          npm install -g supabase
+
+          # Get project ref from URL
+          PROJECT_REF=$(echo "${{ secrets.SUPABASE_URL }}" | sed -n 's|https://\([^.]*\)\.supabase\.co.*|\1|p')
+          echo "Project ref: $PROJECT_REF"
+
+          mkdir -p dumps/functions
+
+          # List and download all functions
+          FUNCTIONS=$(supabase functions list --project-ref "$PROJECT_REF" 2>/dev/null | tail -n +2 | awk '{print $1}' | grep -v '^$' || true)
+
+          if [ -n "$FUNCTIONS" ]; then
+            for FUNC_NAME in $FUNCTIONS; do
+              echo "Downloading function: $FUNC_NAME"
+              supabase functions download "$FUNC_NAME" --project-ref "$PROJECT_REF" || true
+            done
+
+            # Move downloaded functions to dumps
+            mv supabase/functions/* dumps/functions/ 2>/dev/null || true
+          fi
+
+          # Create archive
+          TIMESTAMP=$(cat dumps/TIMESTAMP)
+          if [ -d "dumps/functions" ] && [ "$(ls -A dumps/functions 2>/dev/null)" ]; then
+            tar -czf "dumps/functions_${TIMESTAMP}.tar.gz" -C dumps/functions .
+            echo "Edge functions backed up successfully"
+          else
+            echo "No edge functions found to backup"
+          fi
+          rm -rf dumps/functions supabase/ dumps/TIMESTAMP
+          ls -la dumps/
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Upload to Cloudflare R2
         run: |

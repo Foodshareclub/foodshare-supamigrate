@@ -716,7 +716,7 @@ jobs:
 
       - name: Run backup
         run: |
-          mkdir -p backup
+          mkdir -p dumps
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           PGPASSWORD="${{ secrets.SUPABASE_DB_PASS }}" pg_dump \
             -h "${{ secrets.SUPABASE_POOLER_HOST }}" \
@@ -724,9 +724,9 @@ jobs:
             -U "${{ secrets.SUPABASE_DB_USER }}" \
             -d postgres \
             --no-owner --no-acl \
-            -Fc -f backup/backup_${TIMESTAMP}.dump
-          gzip -k backup/backup_${TIMESTAMP}.dump || true
-          ls -la backup/
+            -Fc -f dumps/backup_${TIMESTAMP}.dump
+          gzip -k dumps/backup_${TIMESTAMP}.dump || true
+          ls -la dumps/
         env:
           RUST_LOG: info
 
@@ -734,20 +734,12 @@ jobs:
         run: |
           curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
-          # Debug: show endpoint
-          echo "Endpoint: ${{ secrets.MINIO_ENDPOINT }}"
-          # Set alias with insecure flag for potential SSL issues
-          ./mc alias set backup ${{ secrets.MINIO_ENDPOINT }} \
+          ./mc alias set minio ${{ secrets.MINIO_ENDPOINT }} \
             ${{ secrets.MINIO_ACCESS_KEY }} \
             ${{ secrets.MINIO_SECRET_KEY }}
-          # Debug: test connection
-          ./mc admin info backup || echo "Admin info failed (expected for non-admin)"
-          ./mc ls backup/ || echo "Bucket list failed"
           # Upload with date folder
           DATE=$(date +%Y-%m-%d)
-          ./mc cp backup/*.dump backup/${{ secrets.MINIO_BUCKET }}/${DATE}/ || \
-            ./mc cp backup/*.dump.gz backup/${{ secrets.MINIO_BUCKET }}/${DATE}/ || \
-            echo "Upload failed"
-          # Verify
-          ./mc ls backup/${{ secrets.MINIO_BUCKET }}/ || true
+          ./mc cp dumps/*.dump minio/${{ secrets.MINIO_BUCKET }}/${DATE}/
+          # Verify upload
+          ./mc ls minio/${{ secrets.MINIO_BUCKET }}/${DATE}/
 

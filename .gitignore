@@ -1,7 +1,7 @@
 # Rust
 /target/
 **/*.rs.bk
-Cargo.lock
+# Note: Cargo.lock is tracked for reproducible builds (binary crate)
 
 # IDE
 .idea/

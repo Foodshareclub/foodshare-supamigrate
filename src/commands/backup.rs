@@ -19,12 +19,14 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     let backup_dir = args.output.join(format!("{}_{}", args.project, timestamp));
     fs::create_dir_all(&backup_dir)?;
 
+    let include_functions = !args.no_functions;
+
     println!("\n{} Backup Plan", style("📋").bold());
     println!("  Project: {} ({})", args.project, project.project_ref);
     println!("  Output: {}", backup_dir.display());
     println!("  Schema only: {}", args.schema_only);
     println!("  Include storage: {}", args.include_storage);
-    println!("  Include functions: {}", args.include_functions);
+    println!("  Include functions: {}", include_functions);
     println!("  Compress: {}", args.compress);
 
     // Database backup
@@ -55,8 +57,8 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     info!("Database backup saved to: {}", dump_file.display());
     println!("{} Database backup complete!", style("✓").green());
 
-    // Edge Functions backup
-    if args.include_functions {
+    // Edge Functions backup (included by default)
+    if include_functions {
         println!("\n{} Backing up edge functions...", style("⚡").bold());
 
         let service_key = project.service_key.as_ref().ok_or_else(|| {
@@ -131,7 +133,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         timestamp: Utc::now().to_rfc3339(),
         schema_only: args.schema_only,
         include_storage: args.include_storage,
-        include_functions: args.include_functions,
+        include_functions,
         compressed: args.compress,
     };
 

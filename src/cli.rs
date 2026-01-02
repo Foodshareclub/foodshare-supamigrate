@@ -98,9 +98,9 @@ pub struct BackupArgs {
     #[arg(long, default_value = "false")]
     pub include_storage: bool,
 
-    /// Include edge functions in backup
+    /// Exclude edge functions from backup (functions included by default)
     #[arg(long, default_value = "false")]
-    pub include_functions: bool,
+    pub no_functions: bool,
 
     /// Schema only (no data)
     #[arg(long, default_value = "false")]

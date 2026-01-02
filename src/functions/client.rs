@@ -102,6 +102,7 @@ impl FunctionsClient {
     }
 
     /// Get function details including source code
+    #[allow(dead_code)]
     pub async fn get_function(&self, slug: &str) -> Result<EdgeFunctionBody> {
         let url = format!(
             "{}/v1/projects/{}/functions/{}/body",

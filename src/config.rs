@@ -9,7 +9,7 @@ const DEFAULT_CONFIG_PATHS: &[&str] = &[
     "~/.supamigrate.toml",
 ];
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub projects: HashMap<String, ProjectConfig>,
@@ -81,15 +81,6 @@ fn default_excluded_schemas() -> Vec<String> {
         "pg_*".to_string(),
         "information_schema".to_string(),
     ]
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            projects: HashMap::new(),
-            defaults: DefaultsConfig::default(),
-        }
-    }
 }
 
 impl Config {

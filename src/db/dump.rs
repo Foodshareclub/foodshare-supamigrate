@@ -57,6 +57,7 @@ impl PgDump {
     }
 
     /// Execute pg_dump and write to file
+    #[allow(dead_code)]
     pub fn dump_to_file(&self, output_path: &Path) -> Result<()> {
         Self::check_available()?;
 

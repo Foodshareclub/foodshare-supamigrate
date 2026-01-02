@@ -802,7 +802,7 @@ jobs:
   backup-triggers:
     name: "⚡ Backup › Triggers & Functions"
     runs-on: ubuntu-latest
-    needs: backup-rls-policies
+    needs: [backup-rls-policies, backup-database]
 
     steps:
       - name: Extract triggers and functions
@@ -872,7 +872,7 @@ jobs:
   backup-edge-functions:
     name: "🌐 Backup › Edge Functions"
     runs-on: ubuntu-latest
-    needs: backup-triggers
+    needs: [backup-triggers, backup-database]
 
     steps:
       - name: Install Supabase CLI
@@ -939,31 +939,56 @@ jobs:
             -H "apikey: ${SERVICE_KEY}" | jq -r '.[].name // empty')
 
           echo "Found buckets: $BUCKETS"
+          TOTAL_FILES=0
 
           for BUCKET in $BUCKETS; do
             echo "  Backing up bucket: $BUCKET"
             mkdir -p "dumps/storage/${BUCKET}"
 
-            # List all files in bucket
-            FILES=$(curl -s "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
-              -H "Authorization: Bearer ${SERVICE_KEY}" \
-              -H "apikey: ${SERVICE_KEY}" \
-              -H "Content-Type: application/json" \
-              -d '{"prefix":"","limit":10000}' | jq -r '.[].name // empty')
+            # Paginate through all files (1000 per page)
+            OFFSET=0
+            LIMIT=1000
+            BUCKET_FILES=0
 
-            for FILE in $FILES; do
-              mkdir -p "dumps/storage/${BUCKET}/$(dirname "$FILE")"
-              curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILE}" \
+            while true; do
+              RESPONSE=$(curl -s "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
                 -H "Authorization: Bearer ${SERVICE_KEY}" \
                 -H "apikey: ${SERVICE_KEY}" \
-                -o "dumps/storage/${BUCKET}/${FILE}" || true
+                -H "Content-Type: application/json" \
+                -d "{\"prefix\":\"\",\"limit\":${LIMIT},\"offset\":${OFFSET}}")
+
+              FILES=$(echo "$RESPONSE" | jq -r '.[].name // empty')
+              FILE_COUNT=$(echo "$FILES" | grep -c . || echo 0)
+
+              if [ "$FILE_COUNT" -eq 0 ]; then
+                break
+              fi
+
+              for FILE in $FILES; do
+                mkdir -p "dumps/storage/${BUCKET}/$(dirname "$FILE")"
+                curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILE}" \
+                  -H "Authorization: Bearer ${SERVICE_KEY}" \
+                  -H "apikey: ${SERVICE_KEY}" \
+                  -o "dumps/storage/${BUCKET}/${FILE}" || true
+              done
+
+              BUCKET_FILES=$((BUCKET_FILES + FILE_COUNT))
+              OFFSET=$((OFFSET + LIMIT))
+
+              # Stop if we got fewer than limit (last page)
+              if [ "$FILE_COUNT" -lt "$LIMIT" ]; then
+                break
+              fi
             done
+
+            echo "    → $BUCKET: $BUCKET_FILES files"
+            TOTAL_FILES=$((TOTAL_FILES + BUCKET_FILES))
           done
 
           # Create archive
           tar -czf "dumps/storage_${TIMESTAMP}.tar.gz" -C dumps/storage . || true
           rm -rf dumps/storage
-          echo "✅ Storage backup complete"
+          echo "✅ Storage backup complete: $TOTAL_FILES total files"
           ls -lh dumps/
 
       - name: Upload artifact
@@ -1012,7 +1037,7 @@ jobs:
   backup-secrets:
     name: "🔒 Backup › Edge Function Secrets"
     runs-on: ubuntu-latest
-    needs: backup-edge-functions
+    needs: [backup-edge-functions, backup-database]
 
     steps:
       - name: Export function secrets (names only)

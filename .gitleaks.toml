@@ -1,27 +1,17 @@
 # Gitleaks configuration
 # https://github.com/gitleaks/gitleaks
 
-[extend]
-useDefault = true
+title = "Supamigrate Gitleaks Config"
 
-# Exclude false positives
-[[rules]]
-id = "allow-readme-examples"
-description = "Allow example keys in README"
-path = '''README\.md'''
-allowlist = true
-
-[[rules]]
-id = "allow-sql-dumps"
-description = "Allow SQL dump files (contain example data)"
-path = '''\.sql$'''
-allowlist = true
-
-# Exclude test files and examples
 [allowlist]
+description = "Allowlist for false positives"
 paths = [
     '''README\.md''',
-    '''\.sql$''',
+    '''.*\.sql$''',
     '''test.*''',
     '''examples?/''',
+]
+# Allowlist specific commits with example data
+commits = [
+    "d057c1e06efb77b350d8a2db2299fc24c8a53a20",
 ]

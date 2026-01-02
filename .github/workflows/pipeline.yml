@@ -917,10 +917,175 @@ jobs:
           path: dumps/*.tar.gz
           retention-days: 1
 
+  backup-storage:
+    name: "📦 Backup › Storage"
+    runs-on: ubuntu-latest
+    needs: backup-database
+    timeout-minutes: 60
+
+    steps:
+      - name: Download storage buckets
+        run: |
+          mkdir -p dumps/storage
+          SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          SERVICE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE }}"
+          TIMESTAMP="${{ needs.backup-database.outputs.timestamp }}"
+
+          echo "📦 Backing up storage buckets..."
+
+          # List all buckets
+          BUCKETS=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
+            -H "Authorization: Bearer ${SERVICE_KEY}" \
+            -H "apikey: ${SERVICE_KEY}" | jq -r '.[].name // empty')
+
+          echo "Found buckets: $BUCKETS"
+
+          for BUCKET in $BUCKETS; do
+            echo "  Backing up bucket: $BUCKET"
+            mkdir -p "dumps/storage/${BUCKET}"
+
+            # List all files in bucket
+            FILES=$(curl -s "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
+              -H "Authorization: Bearer ${SERVICE_KEY}" \
+              -H "apikey: ${SERVICE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{"prefix":"","limit":10000}' | jq -r '.[].name // empty')
+
+            for FILE in $FILES; do
+              mkdir -p "dumps/storage/${BUCKET}/$(dirname "$FILE")"
+              curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILE}" \
+                -H "Authorization: Bearer ${SERVICE_KEY}" \
+                -H "apikey: ${SERVICE_KEY}" \
+                -o "dumps/storage/${BUCKET}/${FILE}" || true
+            done
+          done
+
+          # Create archive
+          tar -czf "dumps/storage_${TIMESTAMP}.tar.gz" -C dumps/storage . || true
+          rm -rf dumps/storage
+          echo "✅ Storage backup complete"
+          ls -lh dumps/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-storage
+          path: dumps/*.tar.gz
+          retention-days: 1
+
+  backup-auth-config:
+    name: "🔑 Backup › Auth Config"
+    runs-on: ubuntu-latest
+    needs: backup-database
+
+    steps:
+      - name: Export auth configuration
+        run: |
+          mkdir -p dumps
+          TIMESTAMP="${{ needs.backup-database.outputs.timestamp }}"
+          PROJECT_REF=$(echo "${{ secrets.SUPABASE_URL }}" | sed -n 's|https://\([^.]*\)\.supabase\.co.*|\1|p')
+
+          echo "🔑 Backing up auth configuration..."
+
+          # Get auth config via Management API
+          curl -s "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            > dumps/auth_config_${TIMESTAMP}.json
+
+          # Get auth providers
+          curl -s "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth/sso/providers" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            > dumps/auth_providers_${TIMESTAMP}.json || echo "[]" > dumps/auth_providers_${TIMESTAMP}.json
+
+          echo "✅ Auth config backup complete"
+          ls -lh dumps/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-auth
+          path: dumps/*.json
+          retention-days: 1
+
+  backup-secrets:
+    name: "🔒 Backup › Edge Function Secrets"
+    runs-on: ubuntu-latest
+    needs: backup-edge-functions
+
+    steps:
+      - name: Export function secrets (names only)
+        run: |
+          mkdir -p dumps
+          TIMESTAMP="${{ needs.backup-database.outputs.timestamp }}"
+          PROJECT_REF=$(echo "${{ secrets.SUPABASE_URL }}" | sed -n 's|https://\([^.]*\)\.supabase\.co.*|\1|p')
+
+          echo "🔒 Backing up edge function secret names..."
+
+          # Get secret names (values are not exposed via API for security)
+          curl -s "https://api.supabase.com/v1/projects/${PROJECT_REF}/secrets" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            | jq '[.[] | {name: .name}]' \
+            > dumps/secrets_${TIMESTAMP}.json
+
+          echo "✅ Secrets backup complete (names only, values not exposed)"
+          cat dumps/secrets_${TIMESTAMP}.json
+          ls -lh dumps/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-secrets
+          path: dumps/*.json
+          retention-days: 1
+
+  backup-cron-jobs:
+    name: "⏰ Backup › Cron Jobs"
+    runs-on: ubuntu-latest
+    needs: backup-database
+
+    steps:
+      - name: Export pg_cron jobs
+        run: |
+          mkdir -p dumps
+          TIMESTAMP="${{ needs.backup-database.outputs.timestamp }}"
+
+          echo "⏰ Backing up cron jobs..."
+
+          PGPASSWORD="${{ secrets.SUPABASE_DB_PASS }}" psql \
+            -h "${{ secrets.SUPABASE_POOLER_HOST }}" \
+            -p 5432 \
+            -U "${{ secrets.SUPABASE_DB_USER }}" \
+            -d postgres \
+            -c "
+              SELECT '-- Cron Jobs Export' AS header;
+              SELECT format(
+                'SELECT cron.schedule(%L, %L, %L);',
+                jobname,
+                schedule,
+                command
+              )
+              FROM cron.job
+              ORDER BY jobname;
+            " -t -A > dumps/cron_jobs_${TIMESTAMP}.sql 2>/dev/null || echo "-- No cron jobs or pg_cron not installed" > dumps/cron_jobs_${TIMESTAMP}.sql
+
+          echo "✅ Cron jobs backup complete"
+          cat dumps/cron_jobs_${TIMESTAMP}.sql
+          ls -lh dumps/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-cron
+          path: dumps/*.sql
+          retention-days: 1
+
   backup-upload:
     name: "☁️ Backup › Upload to R2"
     runs-on: ubuntu-latest
-    needs: [backup-database, backup-rls-policies, backup-triggers, backup-edge-functions]
+    needs: [backup-database, backup-rls-policies, backup-triggers, backup-edge-functions, backup-storage, backup-auth-config, backup-secrets, backup-cron-jobs]
 
     steps:
       - name: Download all artifacts

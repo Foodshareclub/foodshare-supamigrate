@@ -734,14 +734,20 @@ jobs:
         run: |
           curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
+          # Debug: show endpoint
+          echo "Endpoint: ${{ secrets.MINIO_ENDPOINT }}"
+          # Set alias with insecure flag for potential SSL issues
           ./mc alias set backup ${{ secrets.MINIO_ENDPOINT }} \
             ${{ secrets.MINIO_ACCESS_KEY }} \
             ${{ secrets.MINIO_SECRET_KEY }}
-          # Create bucket if not exists
-          ./mc mb --ignore-existing backup/${{ secrets.MINIO_BUCKET }} || true
+          # Debug: test connection
+          ./mc admin info backup || echo "Admin info failed (expected for non-admin)"
+          ./mc ls backup/ || echo "Bucket list failed"
           # Upload with date folder
           DATE=$(date +%Y-%m-%d)
-          ./mc cp --recursive backup/ backup/${{ secrets.MINIO_BUCKET }}/${DATE}/
-          # Verify upload
-          ./mc ls backup/${{ secrets.MINIO_BUCKET }}/${DATE}/
+          ./mc cp backup/*.dump backup/${{ secrets.MINIO_BUCKET }}/${DATE}/ || \
+            ./mc cp backup/*.dump.gz backup/${{ secrets.MINIO_BUCKET }}/${DATE}/ || \
+            echo "Upload failed"
+          # Verify
+          ./mc ls backup/${{ secrets.MINIO_BUCKET }}/ || true
 

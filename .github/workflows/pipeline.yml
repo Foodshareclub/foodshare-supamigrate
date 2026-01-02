@@ -749,9 +749,8 @@ jobs:
           ./mc alias set backup ${{ secrets.MINIO_ENDPOINT }} \
             ${{ secrets.MINIO_ACCESS_KEY }} \
             ${{ secrets.MINIO_SECRET_KEY }}
-          ./mc mb --ignore-existing backup/supabase-backups
           DATE=$(date +%Y-%m-%d)
-          ./mc cp --recursive backup/ backup/supabase-backups/${DATE}/
+          ./mc cp --recursive backup/ backup/${{ secrets.MINIO_BUCKET }}/${DATE}/
 
       - name: Cleanup
         if: always()

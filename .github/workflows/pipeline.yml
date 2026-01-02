@@ -738,7 +738,7 @@ jobs:
       - name: Run backup
         run: |
           mkdir -p backup
-          ./target/release/supamigrate backup production --output backup/
+          ./target/release/supamigrate backup --project production --output backup/
         env:
           RUST_LOG: info
 

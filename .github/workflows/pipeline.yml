@@ -875,13 +875,12 @@ jobs:
     needs: backup-triggers
 
     steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install Supabase CLI
-        run: npm install -g supabase
+        run: |
+          # Download latest Supabase CLI binary
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz
+          sudo mv supabase /usr/local/bin/
+          supabase --version
 
       - name: Download edge functions
         run: |

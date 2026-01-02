@@ -56,9 +56,9 @@ concurrency:
 permissions:
   contents: read
 
-# =============================================================================
-# STAGE 1: VALIDATION
-# =============================================================================
+# ===========================================================================
+# 🔍 STAGE 1: VALIDATION
+# ===========================================================================
 jobs:
   # ---------------------------------------------------------------------------
   # Metadata & Environment
@@ -214,9 +214,9 @@ jobs:
           config: p/rust
         continue-on-error: true
 
-# =============================================================================
-# STAGE 2: TEST
-# =============================================================================
+# ===========================================================================
+# 🧪 STAGE 2: TEST
+# ===========================================================================
   test:
     name: Test (${{ matrix.os }})
     needs: [lint]
@@ -309,9 +309,9 @@ jobs:
           fi
         continue-on-error: true
 
-# =============================================================================
-# STAGE 3: BUILD
-# =============================================================================
+# ===========================================================================
+# 🔨 STAGE 3: BUILD
+# ===========================================================================
   build:
     name: Build (${{ matrix.name }})
     needs: [metadata, lint, security, test]
@@ -453,9 +453,9 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-# =============================================================================
-# STAGE 4: RELEASE
-# =============================================================================
+# ===========================================================================
+# 🚀 STAGE 4: RELEASE
+# ===========================================================================
   release:
     name: Release
     needs: [metadata, build]
@@ -610,9 +610,9 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-# =============================================================================
-# STAGE 5: POST-RELEASE
-# =============================================================================
+# ===========================================================================
+# 📢 STAGE 5: POST-RELEASE
+# ===========================================================================
   notify:
     name: Notify
     needs: [metadata, release, publish]
@@ -703,14 +703,15 @@ jobs:
             dependencies.txt
           retention-days: 90
 
-  # ---------------------------------------------------------------------------
-  # Backup Jobs (Sequential Pipeline)
-  # Order: Database -> RLS Policies -> Triggers -> Edge Functions -> Upload
-  # ---------------------------------------------------------------------------
+  # ===========================================================================
+  # 💾 BACKUP PIPELINE
+  # ===========================================================================
+  # Sequential: Database → RLS → Triggers → Edge Functions → Upload
+  # Runs on: schedule (daily 2 AM UTC) or manual dispatch
+  # ===========================================================================
 
-  # Job 1: Full Database Dump
   backup-database:
-    name: 1. Database Dump
+    name: "💾 Backup › Database"
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     outputs:
@@ -743,9 +744,8 @@ jobs:
           path: dumps/*.dump
           retention-days: 1
 
-  # Job 2: Extract RLS Policies
   backup-rls-policies:
-    name: 2. RLS Policies
+    name: "🔐 Backup › RLS Policies"
     runs-on: ubuntu-latest
     needs: backup-database
 
@@ -799,9 +799,8 @@ jobs:
           path: dumps/*.sql
           retention-days: 1
 
-  # Job 3: Extract Trigger Functions
   backup-triggers:
-    name: 3. Triggers & Functions
+    name: "⚡ Backup › Triggers & Functions"
     runs-on: ubuntu-latest
     needs: backup-rls-policies
 
@@ -870,9 +869,8 @@ jobs:
           path: dumps/*.sql
           retention-days: 1
 
-  # Job 4: Edge Functions (Supabase)
   backup-edge-functions:
-    name: 4. Edge Functions
+    name: "🌐 Backup › Edge Functions"
     runs-on: ubuntu-latest
     needs: backup-triggers
 
@@ -920,9 +918,8 @@ jobs:
           path: dumps/*.tar.gz
           retention-days: 1
 
-  # Job 5: Upload all to R2
   backup-upload:
-    name: 5. Upload to R2
+    name: "☁️ Backup › Upload to R2"
     runs-on: ubuntu-latest
     needs: [backup-database, backup-rls-policies, backup-triggers, backup-edge-functions]
 

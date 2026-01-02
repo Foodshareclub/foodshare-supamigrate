@@ -740,6 +740,8 @@ jobs:
           # Upload with date folder
           DATE=$(date +%Y-%m-%d)
           ./mc cp dumps/*.dump r2/${{ secrets.R2_BUCKET }}/${DATE}/
-          # Verify upload
-          ./mc ls r2/${{ secrets.R2_BUCKET }}/${DATE}/
+          # Cleanup: remove backups older than 30 days (keeps ~360MB of 1GB limit)
+          ./mc rm --recursive --force --older-than 30d r2/${{ secrets.R2_BUCKET }}/ || true
+          # Show remaining backups
+          ./mc ls r2/${{ secrets.R2_BUCKET }}/
 

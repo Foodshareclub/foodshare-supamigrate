@@ -706,7 +706,8 @@ jobs:
   # ===========================================================================
   # 💾 BACKUP PIPELINE
   # ===========================================================================
-  # Sequential: Database → RLS → Triggers → Edge Functions → Upload
+  # Jobs: Database, RLS, Triggers, Edge Functions, Auth, Secrets, Cron → Upload
+  # Storage excluded: Already on R2 (Supabase storage backend)
   # Runs on: schedule (daily 2 AM UTC) or manual dispatch
   # ===========================================================================
 
@@ -917,86 +918,7 @@ jobs:
           path: dumps/*.tar.gz
           retention-days: 1
 
-  backup-storage:
-    name: "📦 Backup › Storage"
-    runs-on: ubuntu-latest
-    needs: backup-database
-    timeout-minutes: 60
-
-    steps:
-      - name: Download storage buckets
-        run: |
-          mkdir -p dumps/storage
-          SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
-          SERVICE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE }}"
-          TIMESTAMP="${{ needs.backup-database.outputs.timestamp }}"
-
-          echo "📦 Backing up storage buckets..."
-
-          # List all buckets
-          BUCKETS=$(curl -s "${SUPABASE_URL}/storage/v1/bucket" \
-            -H "Authorization: Bearer ${SERVICE_KEY}" \
-            -H "apikey: ${SERVICE_KEY}" | jq -r '.[].name // empty')
-
-          echo "Found buckets: $BUCKETS"
-          TOTAL_FILES=0
-
-          for BUCKET in $BUCKETS; do
-            echo "  Backing up bucket: $BUCKET"
-            mkdir -p "dumps/storage/${BUCKET}"
-
-            # Paginate through all files (1000 per page)
-            OFFSET=0
-            LIMIT=1000
-            BUCKET_FILES=0
-
-            while true; do
-              RESPONSE=$(curl -s "${SUPABASE_URL}/storage/v1/object/list/${BUCKET}" \
-                -H "Authorization: Bearer ${SERVICE_KEY}" \
-                -H "apikey: ${SERVICE_KEY}" \
-                -H "Content-Type: application/json" \
-                -d "{\"prefix\":\"\",\"limit\":${LIMIT},\"offset\":${OFFSET}}")
-
-              FILES=$(echo "$RESPONSE" | jq -r '.[].name // empty')
-              FILE_COUNT=$(echo "$FILES" | grep -c . || echo 0)
-
-              if [ "$FILE_COUNT" -eq 0 ]; then
-                break
-              fi
-
-              for FILE in $FILES; do
-                mkdir -p "dumps/storage/${BUCKET}/$(dirname "$FILE")"
-                curl -s "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILE}" \
-                  -H "Authorization: Bearer ${SERVICE_KEY}" \
-                  -H "apikey: ${SERVICE_KEY}" \
-                  -o "dumps/storage/${BUCKET}/${FILE}" || true
-              done
-
-              BUCKET_FILES=$((BUCKET_FILES + FILE_COUNT))
-              OFFSET=$((OFFSET + LIMIT))
-
-              # Stop if we got fewer than limit (last page)
-              if [ "$FILE_COUNT" -lt "$LIMIT" ]; then
-                break
-              fi
-            done
-
-            echo "    → $BUCKET: $BUCKET_FILES files"
-            TOTAL_FILES=$((TOTAL_FILES + BUCKET_FILES))
-          done
-
-          # Create archive
-          tar -czf "dumps/storage_${TIMESTAMP}.tar.gz" -C dumps/storage . || true
-          rm -rf dumps/storage
-          echo "✅ Storage backup complete: $TOTAL_FILES total files"
-          ls -lh dumps/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backup-storage
-          path: dumps/*.tar.gz
-          retention-days: 1
+  # NOTE: Storage backup removed - Supabase storage already uses R2
 
   backup-auth-config:
     name: "🔑 Backup › Auth Config"
@@ -1110,7 +1032,7 @@ jobs:
   backup-upload:
     name: "☁️ Backup › Upload to R2"
     runs-on: ubuntu-latest
-    needs: [backup-database, backup-rls-policies, backup-triggers, backup-edge-functions, backup-storage, backup-auth-config, backup-secrets, backup-cron-jobs]
+    needs: [backup-database, backup-rls-policies, backup-triggers, backup-edge-functions, backup-auth-config, backup-secrets, backup-cron-jobs]
 
     steps:
       - name: Download all artifacts

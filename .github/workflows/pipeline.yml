@@ -168,11 +168,16 @@ jobs:
       - name: Check outdated dependencies
         run: cargo outdated --exit-code 0 || true
 
+      - name: Organize audit in backup directory
+        run: |
+          mkdir -p backup/security
+          mv audit-report.json backup/security/
+
       - name: Upload audit report
         uses: actions/upload-artifact@v4
         with:
           name: security-audit
-          path: audit-report.json
+          path: backup/
           retention-days: 90
 
   # ---------------------------------------------------------------------------
@@ -309,7 +314,7 @@ jobs:
           path: |
             lcov.info
             coverage.json
-          retention-days: 30
+          retention-days: 90
 
   # ---------------------------------------------------------------------------
   # Fuzzing (optional, runs on schedule)
@@ -464,14 +469,19 @@ jobs:
         with:
           subject-path: supamigrate-${{ matrix.name }}.tar.gz
 
+      - name: Organize artifacts in backup directory
+        shell: bash
+        run: |
+          mkdir -p backup/builds/${{ needs.metadata.outputs.version }}
+          mv supamigrate-${{ matrix.name }}.* backup/builds/${{ needs.metadata.outputs.version }}/ 2>/dev/null || true
+          mv sbom-${{ matrix.name }}.spdx.json backup/builds/${{ needs.metadata.outputs.version }}/ 2>/dev/null || true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.name }}
-          path: |
-            supamigrate-${{ matrix.name }}.*
-            sbom-${{ matrix.name }}.spdx.json
-          retention-days: 7
+          path: backup/
+          retention-days: 90
           if-no-files-found: error
 
 # =============================================================================

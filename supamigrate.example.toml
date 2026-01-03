@@ -23,6 +23,7 @@ compress_backups = true   # Gzip database dumps
 [storage.r2]
 endpoint = "https://your-account-id.r2.cloudflarestorage.com"
 bucket = "supabase-backups"
-access_key = "your-r2-access-key"
-secret_key = "your-r2-secret-key"
+access_key = "your-r2-access-key"       # R2 Access Key ID
+secret_key = "your-r2-secret-key"       # R2 Secret Access Key
+api_token = "your-cloudflare-api-token" # Cloudflare API token (optional)
 region = "auto"

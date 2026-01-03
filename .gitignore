@@ -30,3 +30,6 @@ supamigrate.toml
 # Test artifacts
 *.sql
 *.sql.gz
+
+# Work/temp directories
+work/

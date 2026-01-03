@@ -15,3 +15,12 @@ service_key = "staging-service-key"
 [defaults]
 parallel_transfers = 4    # Concurrent file uploads/downloads
 compress_backups = true   # Gzip database dumps
+
+# Optional: Cloud storage for backups (S3-compatible)
+# Used by CI/CD pipeline for remote backup storage
+[storage.r2]
+endpoint = "https://your-account-id.r2.cloudflarestorage.com"
+bucket = "supabase-backups"
+access_key = "your-r2-access-key"
+secret_key = "your-r2-secret-key"
+region = "auto"

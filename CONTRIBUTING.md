@@ -11,7 +11,7 @@ Thanks for your interest in contributing! Here's how to get started.
 
 2. **Clone the repo**
    ```bash
-   git clone https://github.com/foodshare-club/supamigrate
+   git clone https://github.com/Foodshareclub/supamigrate
    cd supamigrate
    ```
 

@@ -1,50 +1,51 @@
 # Supamigrate
 
-[![Pipeline](https://github.com/foodshare-club/supamigrate/actions/workflows/pipeline.yml/badge.svg)](https://github.com/foodshare-club/supamigrate/actions/workflows/pipeline.yml)
+[![Pipeline](https://github.com/Foodshareclub/supamigrate/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Foodshareclub/supamigrate/actions/workflows/pipeline.yml)
 [![Crates.io](https://img.shields.io/crates/v/supamigrate.svg)](https://crates.io/crates/supamigrate)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-A fast, cross-platform CLI tool for migrating Supabase projects — database schema, data, storage, and edge functions.
+A fast, cross-platform CLI tool for migrating and backing up [Supabase](https://supabase.com) projects — database schema, data, storage, and edge functions.
+
+## Why Supamigrate?
+
+- **One command** — Migrate entire projects between environments
+- **Complete backups** — Database, storage, edge functions, RLS policies
+- **CI/CD ready** — Automate daily backups to S3/R2/MinIO
+- **Cross-platform** — Pre-built binaries for Linux, macOS, Windows
+- **Secure** — SBOM, attestations, no credentials stored
 
 ## Features
 
-- 🚀 **Full Migration** — Schema, data, storage, and edge functions in one command
-- ⚡ **Edge Functions** — Backup and restore Deno edge functions
-- 📦 **Storage Sync** — Parallel bucket transfers with progress bars
-- 💾 **Backup & Restore** — Compressed backups with metadata
-- 🔧 **Flexible** — Schema-only, data-only, or selective migrations
-- 🌍 **Cross-platform** — Linux, macOS, and Windows binaries
-- 🔒 **Secure** — SBOM, attestations, supply chain security
+| Feature | Description |
+|---------|-------------|
+| **Full Migration** | Schema, data, triggers, RLS policies in one command |
+| **Edge Functions** | Backup and restore Deno edge functions |
+| **Storage Sync** | Parallel bucket transfers with progress bars |
+| **Backup & Restore** | Compressed backups with metadata |
+| **Flexible** | Schema-only, data-only, or selective migrations |
 
 ## Installation
 
 ### Pre-built Binaries
 
-Download from [GitHub Releases](https://github.com/foodshare-club/supamigrate/releases):
+Download from [GitHub Releases](https://github.com/Foodshareclub/supamigrate/releases):
 
 ```bash
 # macOS (Apple Silicon)
-curl -fsSL https://github.com/foodshare-club/supamigrate/releases/latest/download/supamigrate-darwin-aarch64.tar.gz | tar xz
+curl -fsSL https://github.com/Foodshareclub/supamigrate/releases/latest/download/supamigrate-darwin-aarch64.tar.gz | tar xz
 sudo mv supamigrate /usr/local/bin/
 
 # macOS (Intel)
-curl -fsSL https://github.com/foodshare-club/supamigrate/releases/latest/download/supamigrate-darwin-x86_64.tar.gz | tar xz
+curl -fsSL https://github.com/Foodshareclub/supamigrate/releases/latest/download/supamigrate-darwin-x86_64.tar.gz | tar xz
 sudo mv supamigrate /usr/local/bin/
 
 # Linux (x86_64)
-curl -fsSL https://github.com/foodshare-club/supamigrate/releases/latest/download/supamigrate-linux-x86_64.tar.gz | tar xz
+curl -fsSL https://github.com/Foodshareclub/supamigrate/releases/latest/download/supamigrate-linux-x86_64.tar.gz | tar xz
 sudo mv supamigrate /usr/local/bin/
 
 # Linux (ARM64)
-curl -fsSL https://github.com/foodshare-club/supamigrate/releases/latest/download/supamigrate-linux-aarch64.tar.gz | tar xz
+curl -fsSL https://github.com/Foodshareclub/supamigrate/releases/latest/download/supamigrate-linux-aarch64.tar.gz | tar xz
 sudo mv supamigrate /usr/local/bin/
-```
-
-### Verify Download
-
-```bash
-curl -fsSL https://github.com/foodshare-club/supamigrate/releases/latest/download/SHA256SUMS.txt -o SHA256SUMS.txt
-sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
 
 ### From Cargo
@@ -55,7 +56,7 @@ cargo install supamigrate
 
 ### Prerequisites
 
-PostgreSQL client tools required:
+PostgreSQL client tools required for database operations:
 
 ```bash
 # macOS
@@ -63,6 +64,9 @@ brew install postgresql
 
 # Ubuntu/Debian
 sudo apt install postgresql-client
+
+# Windows (via Chocolatey)
+choco install postgresql
 ```
 
 ## Quick Start
@@ -73,56 +77,62 @@ sudo apt install postgresql-client
 supamigrate config init
 ```
 
-Creates `supamigrate.toml`:
+This creates `supamigrate.toml` (add to .gitignore!):
 
 ```toml
 [projects.production]
-project_ref = "abcdefghijklmnop"
-db_password = "your-db-password"
-service_key = "eyJhbGciOiJIUzI1NiIs..."
+project_ref = "your-project-ref"      # From Supabase dashboard URL
+db_password = "your-db-password"      # Database password
+service_key = "eyJhbGciOiJIUzI1NiIs..." # Service role key
 
 [projects.staging]
-project_ref = "qrstuvwxyz123456"
-db_password = "your-db-password"
+project_ref = "your-staging-ref"
+db_password = "your-staging-password"
 service_key = "eyJhbGciOiJIUzI1NiIs..."
+
+[defaults]
+parallel_transfers = 4
+compress_backups = true
 ```
 
-### 2. Migrate
+> **Where to find these values:**
+> - `project_ref`: Your Supabase URL is `https://<project_ref>.supabase.co`
+> - `db_password`: Project Settings → Database → Database password
+> - `service_key`: Project Settings → API → `service_role` key (not anon!)
+
+### 2. Migrate Between Projects
 
 ```bash
-# Full migration
+# Full migration (production → staging)
 supamigrate migrate --from production --to staging
 
-# Include storage
+# Include storage buckets
 supamigrate migrate --from production --to staging --include-storage
 
-# Schema only
+# Schema only (no data)
 supamigrate migrate --from production --to staging --schema-only
 ```
 
 ### 3. Backup & Restore
 
 ```bash
-# Backup database only
+# Backup database
 supamigrate backup --project production
 
 # Full backup (database + storage + edge functions)
 supamigrate backup --project production --include-storage --include-functions
 
-# Restore
+# Restore to another project
 supamigrate restore --from ./backup/production_20240115_120000 --to staging
-
-# Restore with functions
-supamigrate restore --from ./backup/production_20240115_120000 --to staging --include-functions
 ```
 
 ## What Gets Backed Up
 
 | Component | Included | Flag |
 |-----------|----------|------|
-| Tables, views, indexes | ✅ Always | - |
-| Functions & triggers | ✅ Always | - |
-| RLS policies | ✅ Always | - |
+| Tables, views, indexes | Always | - |
+| Functions & triggers | Always | - |
+| RLS policies | Always | - |
 | Storage buckets & files | Optional | `--include-storage` |
 | Edge Functions (Deno) | Optional | `--include-functions` |
 
@@ -130,20 +140,68 @@ supamigrate restore --from ./backup/production_20240115_120000 --to staging --in
 
 | Command | Description |
 |---------|-------------|
-| `migrate` | Migrate between projects |
-| `backup` | Backup to local disk |
+| `migrate` | Migrate between Supabase projects |
+| `backup` | Backup project to local disk |
 | `restore` | Restore from backup |
-| `storage list` | List buckets |
+| `storage list` | List storage buckets |
 | `storage sync` | Sync storage between projects |
 | `config init` | Create config file |
 | `config list` | List configured projects |
 
 Run `supamigrate <command> --help` for details.
 
+## CI/CD Integration
+
+### Automated Daily Backups (GitHub Actions)
+
+```yaml
+name: Daily Backup
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install supamigrate
+        run: |
+          curl -fsSL https://github.com/Foodshareclub/supamigrate/releases/latest/download/supamigrate-linux-x86_64.tar.gz | tar xz
+          sudo mv supamigrate /usr/local/bin/
+          sudo apt-get install -y postgresql-client
+
+      - name: Create config
+        run: |
+          cat > supamigrate.toml << EOF
+          [projects.production]
+          project_ref = "${{ secrets.SUPABASE_PROJECT_REF }}"
+          db_password = "${{ secrets.SUPABASE_DB_PASSWORD }}"
+          service_key = "${{ secrets.SUPABASE_SERVICE_KEY }}"
+          EOF
+
+      - name: Backup
+        run: supamigrate backup --project production --include-functions
+
+      - name: Upload to S3/R2
+        run: |
+          # Upload backup to your storage
+          aws s3 cp ./backup/ s3://your-bucket/backups/ --recursive
+```
+
+### Required Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `SUPABASE_PROJECT_REF` | Project reference (from URL) |
+| `SUPABASE_DB_PASSWORD` | Database password |
+| `SUPABASE_SERVICE_KEY` | Service role key |
+
 ## Configuration
 
-### Config Locations
+### Config File Locations
 
+Searched in order:
 1. `./supamigrate.toml`
 2. `~/.config/supamigrate/config.toml`
 3. `~/.supamigrate.toml`
@@ -156,66 +214,10 @@ export SUPAMIGRATE_SOURCE=production
 export SUPAMIGRATE_TARGET=staging
 ```
 
-## CI/CD
-
-### GitHub Actions
-
-```yaml
-name: Sync Staging
-on:
-  schedule:
-    - cron: '0 2 * * *'
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install
-        run: |
-          curl -fsSL https://github.com/foodshare-club/supamigrate/releases/latest/download/supamigrate-linux-x86_64.tar.gz | tar xz
-          sudo mv supamigrate /usr/local/bin/
-          sudo apt-get install -y postgresql-client
-
-      - name: Config
-        run: |
-          cat > supamigrate.toml << EOF
-          [projects.production]
-          project_ref = "${{ secrets.PROD_PROJECT_REF }}"
-          db_password = "${{ secrets.PROD_DB_PASSWORD }}"
-          service_key = "${{ secrets.PROD_SERVICE_KEY }}"
-          [projects.staging]
-          project_ref = "${{ secrets.STAGING_PROJECT_REF }}"
-          db_password = "${{ secrets.STAGING_DB_PASSWORD }}"
-          service_key = "${{ secrets.STAGING_SERVICE_KEY }}"
-          EOF
-
-      - name: Sync
-        run: supamigrate migrate --from production --to staging -y
-```
-
-### GitHub Secrets
-
-| Secret | Required | Description |
-|--------|----------|-------------|
-| `CARGO_REGISTRY_TOKEN` | For crates.io | https://crates.io/settings/tokens |
-| `CODECOV_TOKEN` | Optional | Code coverage |
-| `SLACK_WEBHOOK_URL` | Optional | Release notifications |
-
-### Pipeline Stages
-
-```
-Validation → Test → Build → Release → Notify
-    │          │       │        │        │
-    ├─ Lint    ├─ 3 OS ├─ 6 bin ├─ GitHub└─ Summary
-    ├─ Security├─ Cover │  SBOM  │  crates  Slack
-    └─ SAST    └─ Fuzz  └─ Attest└─────────────────
-```
-
 ## Development
 
-### Building
-
 ```bash
-git clone https://github.com/foodshare-club/supamigrate
+git clone https://github.com/Foodshareclub/supamigrate
 cd supamigrate
 cargo build
 cargo test
@@ -224,74 +226,46 @@ cargo test
 ### Creating a Release
 
 ```bash
-# Update version in Cargo.toml
+# Update version in Cargo.toml, then:
 git add -A
 git commit -m "chore: release v0.1.0"
 git tag v0.1.0
 git push origin main --tags
 ```
 
-The pipeline automatically builds 6 platform binaries, generates SBOM/attestations, creates GitHub Release, and publishes to crates.io.
-
-### Pull Request Checklist
-
-- [ ] Code follows project style (`cargo fmt`)
-- [ ] No clippy warnings (`cargo clippy`)
-- [ ] Tests pass (`cargo test`)
-- [ ] Documentation updated (if applicable)
-- [ ] CHANGELOG.md updated (for user-facing changes)
+The pipeline automatically builds binaries for 6 platforms, generates SBOM, and publishes to crates.io.
 
 ## Security
 
 ### Reporting Vulnerabilities
 
-**DO NOT** create public GitHub issues for security vulnerabilities.
-
-1. Email: security@foodshare.club
-2. Or use GitHub's private vulnerability reporting (Security → Advisories → New draft)
-
-**Response Timeline:**
-- 24 hours: Initial acknowledgment
-- 72 hours: Preliminary assessment
-- 7 days: Detailed response with remediation plan
-- 90 days: Coordinated public disclosure
+Use GitHub's private vulnerability reporting:
+**Security → Advisories → New draft**
 
 ### Supply Chain Security
 
 - SBOM included in releases
 - Build provenance attestations (SLSA Level 3)
 - cargo-audit vulnerability scanning
-- cargo-deny license compliance
 - Secret scanning (TruffleHog, Gitleaks)
-- SAST (CodeQL, Semgrep)
 
 ### Best Practices
 
-1. **Verify downloads** using SHA256SUMS.txt
-2. **Never commit** `supamigrate.toml` with credentials
-3. **Use environment variables** in CI/CD
+1. **Never commit** `supamigrate.toml` — it contains credentials
+2. **Verify downloads** using SHA256SUMS.txt
+3. **Use GitHub Secrets** in CI/CD pipelines
 4. **Rotate credentials** regularly
 
-## Code of Conduct
+## Contributing
 
-We pledge to make participation in our project a harassment-free experience for everyone. We expect positive behavior: welcoming language, respect for differing viewpoints, and graceful acceptance of criticism. Unacceptable behavior includes trolling, harassment, and publishing others' private information. See [Contributor Covenant](https://www.contributor-covenant.org/version/2/0/code_of_conduct.html) for full details.
-
-## Changelog
-
-### [Unreleased]
-- Initial release
-- Database migration between Supabase projects (schema, data, triggers, RLS policies)
-- Edge Functions backup and restore via Supabase Management API
-- Storage bucket sync with parallel transfers
-- Backup and restore functionality with compression
-- TOML configuration file support
-- Cross-platform binaries (Linux, macOS, Windows)
-- Enterprise CI/CD pipeline with SBOM and attestations
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE).
 
 ## Credits
+
+Built for the [Supabase](https://supabase.com) community.
 
 Inspired by [Supa-Migrate](https://github.com/mansueli/Supa-Migrate) by [@mansueli](https://github.com/mansueli).

@@ -1,0 +1,17 @@
+# Supamigrate Configuration Example
+# Copy this to supamigrate.toml and fill in your values
+# NEVER commit supamigrate.toml - it contains secrets!
+
+[projects.production]
+project_ref = "your-project-ref"          # From Supabase dashboard URL
+db_password = "your-database-password"    # Database password
+service_key = "your-service-role-key"     # Service role JWT (not anon key)
+
+[projects.staging]
+project_ref = "your-staging-ref"
+db_password = "staging-password"
+service_key = "staging-service-key"
+
+[defaults]
+parallel_transfers = 4    # Concurrent file uploads/downloads
+compress_backups = true   # Gzip database dumps

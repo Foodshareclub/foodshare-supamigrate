@@ -264,7 +264,7 @@ Use GitHub's private vulnerability reporting:
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+We welcome contributions! See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 

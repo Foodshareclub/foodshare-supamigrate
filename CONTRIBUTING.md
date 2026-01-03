@@ -4,7 +4,7 @@ Thanks for your interest in contributing! Here's how to get started.
 
 ## Development Setup
 
-1. **Install Rust** (1.85+)
+1. **Install Rust** (1.75+)
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```

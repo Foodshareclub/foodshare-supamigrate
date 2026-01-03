@@ -3,6 +3,7 @@
 [![Pipeline](https://github.com/Foodshareclub/supamigrate/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Foodshareclub/supamigrate/actions/workflows/pipeline.yml)
 [![Crates.io](https://img.shields.io/crates/v/supamigrate.svg)](https://crates.io/crates/supamigrate)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Supabase](https://img.shields.io/badge/Built%20for-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 
 A fast, cross-platform CLI tool for migrating and backing up [Supabase](https://supabase.com) projects — database schema, data, storage, and edge functions.
 
@@ -12,14 +13,14 @@ A fast, cross-platform CLI tool for migrating and backing up [Supabase](https://
 - **Complete backups** — Database, storage, edge functions, RLS policies
 - **CI/CD ready** — Automate daily backups to S3/R2/MinIO
 - **Cross-platform** — Pre-built binaries for Linux, macOS, Windows
-- **Secure** — SBOM, attestations, no credentials stored
+- **Secure** — SBOM, attestations, no credentials stored in code
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
 | **Full Migration** | Schema, data, triggers, RLS policies in one command |
-| **Edge Functions** | Backup and restore Deno edge functions |
+| **Edge Functions** | Backup and restore Deno edge functions via Management API |
 | **Storage Sync** | Parallel bucket transfers with progress bars |
 | **Backup & Restore** | Compressed backups with metadata |
 | **Flexible** | Schema-only, data-only, or selective migrations |
@@ -81,14 +82,16 @@ This creates `supamigrate.toml` (add to .gitignore!):
 
 ```toml
 [projects.production]
-project_ref = "your-project-ref"      # From Supabase dashboard URL
-db_password = "your-db-password"      # Database password
-service_key = "eyJhbGciOiJIUzI1NiIs..." # Service role key
+project_ref = "your-project-ref"           # From Supabase dashboard URL
+db_password = "your-db-password"           # Database password
+service_key = "eyJhbGciOiJIUzI1NiIs..."    # Service role key (not anon!)
+access_token = "sbp_xxxxxxxxxxxxx"         # Personal access token (for edge functions)
 
 [projects.staging]
 project_ref = "your-staging-ref"
 db_password = "your-staging-password"
 service_key = "eyJhbGciOiJIUzI1NiIs..."
+access_token = "sbp_xxxxxxxxxxxxx"
 
 [defaults]
 parallel_transfers = 4
@@ -99,6 +102,7 @@ compress_backups = true
 > - `project_ref`: Your Supabase URL is `https://<project_ref>.supabase.co`
 > - `db_password`: Project Settings → Database → Database password
 > - `service_key`: Project Settings → API → `service_role` key (not anon!)
+> - `access_token`: [Account → Access Tokens](https://supabase.com/dashboard/account/tokens)
 
 ### 2. Migrate Between Projects
 
@@ -178,6 +182,7 @@ jobs:
           project_ref = "${{ secrets.SUPABASE_PROJECT_REF }}"
           db_password = "${{ secrets.SUPABASE_DB_PASSWORD }}"
           service_key = "${{ secrets.SUPABASE_SERVICE_KEY }}"
+          access_token = "${{ secrets.SUPABASE_ACCESS_TOKEN }}"
           EOF
 
       - name: Backup
@@ -196,6 +201,7 @@ jobs:
 | `SUPABASE_PROJECT_REF` | Project reference (from URL) |
 | `SUPABASE_DB_PASSWORD` | Database password |
 | `SUPABASE_SERVICE_KEY` | Service role key |
+| `SUPABASE_ACCESS_TOKEN` | Personal access token (for edge functions) |
 
 ## Configuration
 
@@ -258,14 +264,18 @@ Use GitHub's private vulnerability reporting:
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE).
 
-## Credits
+## Community
 
 Built for the [Supabase](https://supabase.com) community.
+
+- [Report bugs](https://github.com/Foodshareclub/supamigrate/issues)
+- [Request features](https://github.com/Foodshareclub/supamigrate/issues)
+- [Discussions](https://github.com/Foodshareclub/supamigrate/discussions)
 
 Inspired by [Supa-Migrate](https://github.com/mansueli/Supa-Migrate) by [@mansueli](https://github.com/mansueli).

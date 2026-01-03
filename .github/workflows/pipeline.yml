@@ -50,8 +50,8 @@ env:
   RUST_LOG: info
 
 concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

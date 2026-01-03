@@ -180,7 +180,11 @@ fn check_tool(name: &'static str, version_args: &[&str]) -> ToolStatus {
             .and_then(|output| {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                let version_str = if stdout.trim().is_empty() { &stderr } else { &stdout };
+                let version_str = if stdout.trim().is_empty() {
+                    &stderr
+                } else {
+                    &stdout
+                };
                 version_str
                     .lines()
                     .next()
@@ -191,7 +195,12 @@ fn check_tool(name: &'static str, version_args: &[&str]) -> ToolStatus {
         None
     };
 
-    ToolStatus { name, found, version, path }
+    ToolStatus {
+        name,
+        found,
+        version,
+        path,
+    }
 }
 
 /// Print a beautiful header
@@ -199,21 +208,21 @@ fn print_header() {
     let width = 35;
     let title = "Supamigrate Doctor";
     let padding = width - title.len() - 2; // -2 for spaces around title
-    
+
     println!();
     println!("  ╭{}╮", "─".repeat(width));
-    println!("  │ {}{} │", style(title).bold().white(), " ".repeat(padding));
+    println!(
+        "  │ {}{} │",
+        style(title).bold().white(),
+        " ".repeat(padding)
+    );
     println!("  ╰{}╯", "─".repeat(width));
     println!();
 }
 
 /// Print a section header
 fn print_section(title: &str, emoji: Emoji<'_, '_>) {
-    println!(
-        "  {} {}",
-        emoji,
-        style(title).bold().underlined()
-    );
+    println!("  {} {}", emoji, style(title).bold().underlined());
     println!();
 }
 
@@ -221,11 +230,7 @@ fn print_section(title: &str, emoji: Emoji<'_, '_>) {
 fn print_system_info(os: Os, distro: Option<&str>, pkg_manager: Option<&str>) {
     print_section("System", COMPUTER);
 
-    println!(
-        "     {}  {}",
-        os.emoji(),
-        style(os.name()).white().bold()
-    );
+    println!("     {}  {}", os.emoji(), style(os.name()).white().bold());
 
     if let Some(d) = distro {
         println!(
@@ -237,7 +242,11 @@ fn print_system_info(os: Os, distro: Option<&str>, pkg_manager: Option<&str>) {
 
     // Show architecture for macOS
     if os == Os::MacOS {
-        let arch = if cfg!(target_arch = "aarch64") { "Apple Silicon" } else { "Intel" };
+        let arch = if cfg!(target_arch = "aarch64") {
+            "Apple Silicon"
+        } else {
+            "Intel"
+        };
         println!(
             "        {} {}",
             style("Architecture:").dim(),
@@ -264,7 +273,6 @@ fn print_system_info(os: Os, distro: Option<&str>, pkg_manager: Option<&str>) {
     println!();
 }
 
-
 /// Print tool status with beautiful formatting
 fn print_tool_status(tool: &ToolStatus, required: bool) {
     if tool.found {
@@ -280,11 +288,7 @@ fn print_tool_status(tool: &ToolStatus, required: bool) {
         );
 
         if let Some(path) = &tool.path {
-            println!(
-                "        {} {}",
-                ARROW,
-                style(path).dim()
-            );
+            println!("        {} {}", ARROW, style(path).dim());
         }
     } else {
         let status = if required { "missing" } else { "not found" };
@@ -302,15 +306,20 @@ fn extract_version(version: &str) -> String {
     // Try to extract version like "14.20" from "pg_dump (PostgreSQL) 14.20 (Homebrew)"
     // Or "475" from "Apple gzip 475"
     let parts: Vec<&str> = version.split_whitespace().collect();
-    
+
     for part in parts.iter().rev() {
         // Look for a version-like pattern (starts with digit)
         let clean = part.trim_matches(|c| c == '(' || c == ')');
-        if clean.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+        if clean
+            .chars()
+            .next()
+            .map(|c| c.is_ascii_digit())
+            .unwrap_or(false)
+        {
             return clean.to_string();
         }
     }
-    
+
     // Fallback: return first 20 chars
     version.chars().take(20).collect()
 }
@@ -339,9 +348,10 @@ fn print_success() {
     let text = "All systems go!";
     let content_len = 3 + text.len(); // emoji width ~2 + space + text
     let padding = width - content_len - 2;
-    
+
     println!("  {}", style(format!("╭{}╮", "─".repeat(width))).green());
-    println!("  {} {}{}{} {}", 
+    println!(
+        "  {} {}{}{} {}",
         style("│").green(),
         SPARKLES,
         style(text).green().bold(),
@@ -361,9 +371,10 @@ fn print_failure(missing: &[&str]) {
     let prefix_len = 3; // emoji width ~2 + space
     let content_len = prefix_len + text.len();
     let padding = width - content_len - 2;
-    
+
     println!("  {}", style(format!("╭{}╮", "─".repeat(width))).red());
-    println!("  {} {}{}{} {}",
+    println!(
+        "  {} {}{}{} {}",
         style("│").red(),
         WARNING,
         style(text).red().bold(),
@@ -374,7 +385,11 @@ fn print_failure(missing: &[&str]) {
     println!();
     println!("     {}The following tools are required:", INFO);
     for tool in missing {
-        println!("        {} {}", style("•").red(), style(*tool).white().bold());
+        println!(
+            "        {} {}",
+            style("•").red(),
+            style(*tool).white().bold()
+        );
     }
     println!();
 }
@@ -388,9 +403,18 @@ fn print_install_instructions(os: Os, distro: Option<&str>) {
         if line.trim().is_empty() {
             continue;
         }
-        if line.trim().starts_with("Install") || line.trim().starts_with("Option") || line.trim().starts_with("For ") || line.trim().starts_with("Add to") || line.trim().starts_with("Or ") {
+        if line.trim().starts_with("Install")
+            || line.trim().starts_with("Option")
+            || line.trim().starts_with("For ")
+            || line.trim().starts_with("Add to")
+            || line.trim().starts_with("Or ")
+        {
             println!("     {}", style(line.trim()).white());
-        } else if line.trim().starts_with("Note:") || line.trim().starts_with("After") || line.trim().starts_with("During") || line.trim().starts_with("Then") {
+        } else if line.trim().starts_with("Note:")
+            || line.trim().starts_with("After")
+            || line.trim().starts_with("During")
+            || line.trim().starts_with("Then")
+        {
             println!("     {}", style(line.trim()).dim());
         } else if line.contains("://") {
             println!("       {}", style(line.trim()).cyan().underlined());
@@ -429,58 +453,56 @@ Note: If pg_dump is still not found, add to PATH:
             )
         }
         Os::Linux => match distro {
-            Some("ubuntu") | Some("debian") | Some("pop") | Some("mint") | Some("elementary") | Some("linuxmint") => {
-                r#"Install via apt:
-  sudo apt update && sudo apt install postgresql-client"#.to_string()
-            }
-            Some("fedora") => {
-                r#"Install via dnf:
-  sudo dnf install postgresql"#.to_string()
-            }
+            Some("ubuntu") | Some("debian") | Some("pop") | Some("mint") | Some("elementary")
+            | Some("linuxmint") => r#"Install via apt:
+  sudo apt update && sudo apt install postgresql-client"#
+                .to_string(),
+            Some("fedora") => r#"Install via dnf:
+  sudo dnf install postgresql"#
+                .to_string(),
             Some("rhel") | Some("centos") | Some("rocky") | Some("alma") | Some("ol") => {
                 r#"Install via yum/dnf:
-  sudo dnf install postgresql"#.to_string()
+  sudo dnf install postgresql"#
+                    .to_string()
             }
             Some("arch") | Some("manjaro") | Some("endeavouros") | Some("garuda") => {
                 r#"Install via pacman:
-  sudo pacman -S postgresql-libs"#.to_string()
+  sudo pacman -S postgresql-libs"#
+                    .to_string()
             }
-            Some("opensuse") | Some("opensuse-leap") | Some("opensuse-tumbleweed") | Some("suse") | Some("sles") => {
-                r#"Install via zypper:
-  sudo zypper install postgresql"#.to_string()
-            }
-            Some("alpine") => {
-                r#"Install via apk:
-  apk add postgresql-client"#.to_string()
-            }
-            Some("nixos") => {
-                r#"Add to configuration.nix:
+            Some("opensuse")
+            | Some("opensuse-leap")
+            | Some("opensuse-tumbleweed")
+            | Some("suse")
+            | Some("sles") => r#"Install via zypper:
+  sudo zypper install postgresql"#
+                .to_string(),
+            Some("alpine") => r#"Install via apk:
+  apk add postgresql-client"#
+                .to_string(),
+            Some("nixos") => r#"Add to configuration.nix:
   environment.systemPackages = [ pkgs.postgresql ];
 
 Then rebuild:
-  sudo nixos-rebuild switch"#.to_string()
-            }
-            Some("gentoo") => {
-                r#"Install via emerge:
-  sudo emerge --ask dev-db/postgresql"#.to_string()
-            }
-            Some("void") => {
-                r#"Install via xbps:
-  sudo xbps-install postgresql-client"#.to_string()
-            }
-            _ => {
-                r#"For Debian/Ubuntu:
+  sudo nixos-rebuild switch"#
+                .to_string(),
+            Some("gentoo") => r#"Install via emerge:
+  sudo emerge --ask dev-db/postgresql"#
+                .to_string(),
+            Some("void") => r#"Install via xbps:
+  sudo xbps-install postgresql-client"#
+                .to_string(),
+            _ => r#"For Debian/Ubuntu:
   sudo apt install postgresql-client
 
 For Fedora/RHEL:
   sudo dnf install postgresql
 
 For Arch Linux:
-  sudo pacman -S postgresql-libs"#.to_string()
-            }
+  sudo pacman -S postgresql-libs"#
+                .to_string(),
         },
-        Os::Windows => {
-            r#"Option 1 - Chocolatey (recommended):
+        Os::Windows => r#"Option 1 - Chocolatey (recommended):
   choco install postgresql
 
 Option 2 - Scoop:
@@ -490,103 +512,214 @@ Option 3 - winget:
   winget install PostgreSQL.PostgreSQL
 
 After installation, add to PATH:
-  C:\Program Files\PostgreSQL\16\bin"#.to_string()
-        }
-        Os::FreeBSD => {
-            r#"Install via pkg:
-  sudo pkg install postgresql16-client"#.to_string()
-        }
-        Os::Unknown => {
-            r#"Please install PostgreSQL client tools for your OS.
-  https://www.postgresql.org/download/"#.to_string()
-        }
+  C:\Program Files\PostgreSQL\16\bin"#
+            .to_string(),
+        Os::FreeBSD => r#"Install via pkg:
+  sudo pkg install postgresql16-client"#
+            .to_string(),
+        Os::Unknown => r#"Please install PostgreSQL client tools for your OS.
+  https://www.postgresql.org/download/"#
+            .to_string(),
     }
 }
-
 
 /// Get installation command for PostgreSQL client tools
 fn get_install_command(os: Os, distro: Option<&str>) -> Option<(String, Vec<String>)> {
     match os {
         Os::MacOS => {
             if command_exists("brew") {
-                Some(("brew".to_string(), vec!["install".to_string(), "libpq".to_string()]))
+                Some((
+                    "brew".to_string(),
+                    vec!["install".to_string(), "libpq".to_string()],
+                ))
             } else {
                 None
             }
         }
         Os::Linux => {
             let use_sudo = !is_root();
-            let mut base_cmd: Vec<String> = if use_sudo { vec!["sudo".to_string()] } else { vec![] };
+            let mut base_cmd: Vec<String> = if use_sudo {
+                vec!["sudo".to_string()]
+            } else {
+                vec![]
+            };
 
             match distro {
-                Some("ubuntu") | Some("debian") | Some("pop") | Some("mint") | Some("elementary") | Some("linuxmint") => {
+                Some("ubuntu") | Some("debian") | Some("pop") | Some("mint")
+                | Some("elementary") | Some("linuxmint") => {
                     if command_exists("apt-get") {
-                        base_cmd.extend(["apt-get".to_string(), "install".to_string(), "-y".to_string(), "-qq".to_string(), "postgresql-client".to_string()]);
+                        base_cmd.extend([
+                            "apt-get".to_string(),
+                            "install".to_string(),
+                            "-y".to_string(),
+                            "-qq".to_string(),
+                            "postgresql-client".to_string(),
+                        ]);
                         Some((base_cmd.remove(0), base_cmd))
-                    } else { None }
+                    } else {
+                        None
+                    }
                 }
                 Some("fedora") => {
                     if command_exists("dnf") {
-                        base_cmd.extend(["dnf".to_string(), "install".to_string(), "-y".to_string(), "postgresql".to_string()]);
+                        base_cmd.extend([
+                            "dnf".to_string(),
+                            "install".to_string(),
+                            "-y".to_string(),
+                            "postgresql".to_string(),
+                        ]);
                         Some((base_cmd.remove(0), base_cmd))
-                    } else { None }
+                    } else {
+                        None
+                    }
                 }
                 Some("rhel") | Some("centos") | Some("rocky") | Some("alma") | Some("ol") => {
                     if command_exists("dnf") {
-                        base_cmd.extend(["dnf".to_string(), "install".to_string(), "-y".to_string(), "postgresql".to_string()]);
+                        base_cmd.extend([
+                            "dnf".to_string(),
+                            "install".to_string(),
+                            "-y".to_string(),
+                            "postgresql".to_string(),
+                        ]);
                         Some((base_cmd.remove(0), base_cmd))
                     } else if command_exists("yum") {
-                        base_cmd.extend(["yum".to_string(), "install".to_string(), "-y".to_string(), "postgresql".to_string()]);
+                        base_cmd.extend([
+                            "yum".to_string(),
+                            "install".to_string(),
+                            "-y".to_string(),
+                            "postgresql".to_string(),
+                        ]);
                         Some((base_cmd.remove(0), base_cmd))
-                    } else { None }
+                    } else {
+                        None
+                    }
                 }
                 Some("arch") | Some("manjaro") | Some("endeavouros") | Some("garuda") => {
                     if command_exists("pacman") {
-                        base_cmd.extend(["pacman".to_string(), "-S".to_string(), "--noconfirm".to_string(), "postgresql-libs".to_string()]);
+                        base_cmd.extend([
+                            "pacman".to_string(),
+                            "-S".to_string(),
+                            "--noconfirm".to_string(),
+                            "postgresql-libs".to_string(),
+                        ]);
                         Some((base_cmd.remove(0), base_cmd))
-                    } else { None }
+                    } else {
+                        None
+                    }
                 }
-                Some("opensuse") | Some("opensuse-leap") | Some("opensuse-tumbleweed") | Some("suse") | Some("sles") => {
+                Some("opensuse")
+                | Some("opensuse-leap")
+                | Some("opensuse-tumbleweed")
+                | Some("suse")
+                | Some("sles") => {
                     if command_exists("zypper") {
-                        base_cmd.extend(["zypper".to_string(), "--non-interactive".to_string(), "install".to_string(), "postgresql".to_string()]);
+                        base_cmd.extend([
+                            "zypper".to_string(),
+                            "--non-interactive".to_string(),
+                            "install".to_string(),
+                            "postgresql".to_string(),
+                        ]);
                         Some((base_cmd.remove(0), base_cmd))
-                    } else { None }
+                    } else {
+                        None
+                    }
                 }
                 Some("alpine") => {
                     if command_exists("apk") {
                         if is_root() {
-                            Some(("apk".to_string(), vec!["add".to_string(), "--no-cache".to_string(), "postgresql-client".to_string()]))
+                            Some((
+                                "apk".to_string(),
+                                vec![
+                                    "add".to_string(),
+                                    "--no-cache".to_string(),
+                                    "postgresql-client".to_string(),
+                                ],
+                            ))
                         } else {
-                            Some(("sudo".to_string(), vec!["apk".to_string(), "add".to_string(), "--no-cache".to_string(), "postgresql-client".to_string()]))
+                            Some((
+                                "sudo".to_string(),
+                                vec![
+                                    "apk".to_string(),
+                                    "add".to_string(),
+                                    "--no-cache".to_string(),
+                                    "postgresql-client".to_string(),
+                                ],
+                            ))
                         }
-                    } else { None }
+                    } else {
+                        None
+                    }
                 }
                 Some("void") => {
                     if command_exists("xbps-install") {
-                        base_cmd.extend(["xbps-install".to_string(), "-y".to_string(), "postgresql-client".to_string()]);
+                        base_cmd.extend([
+                            "xbps-install".to_string(),
+                            "-y".to_string(),
+                            "postgresql-client".to_string(),
+                        ]);
                         Some((base_cmd.remove(0), base_cmd))
-                    } else { None }
+                    } else {
+                        None
+                    }
                 }
                 _ => None,
             }
         }
         Os::Windows => {
             if command_exists("choco") {
-                Some(("choco".to_string(), vec!["install".to_string(), "postgresql".to_string(), "-y".to_string()]))
+                Some((
+                    "choco".to_string(),
+                    vec![
+                        "install".to_string(),
+                        "postgresql".to_string(),
+                        "-y".to_string(),
+                    ],
+                ))
             } else if command_exists("scoop") {
-                Some(("scoop".to_string(), vec!["install".to_string(), "postgresql".to_string()]))
+                Some((
+                    "scoop".to_string(),
+                    vec!["install".to_string(), "postgresql".to_string()],
+                ))
             } else if command_exists("winget") {
-                Some(("winget".to_string(), vec!["install".to_string(), "PostgreSQL.PostgreSQL".to_string(), "--silent".to_string(), "--accept-package-agreements".to_string(), "--accept-source-agreements".to_string()]))
-            } else { None }
+                Some((
+                    "winget".to_string(),
+                    vec![
+                        "install".to_string(),
+                        "PostgreSQL.PostgreSQL".to_string(),
+                        "--silent".to_string(),
+                        "--accept-package-agreements".to_string(),
+                        "--accept-source-agreements".to_string(),
+                    ],
+                ))
+            } else {
+                None
+            }
         }
         Os::FreeBSD => {
             if command_exists("pkg") {
                 if is_root() {
-                    Some(("pkg".to_string(), vec!["install".to_string(), "-y".to_string(), "postgresql16-client".to_string()]))
+                    Some((
+                        "pkg".to_string(),
+                        vec![
+                            "install".to_string(),
+                            "-y".to_string(),
+                            "postgresql16-client".to_string(),
+                        ],
+                    ))
                 } else {
-                    Some(("sudo".to_string(), vec!["pkg".to_string(), "install".to_string(), "-y".to_string(), "postgresql16-client".to_string()]))
+                    Some((
+                        "sudo".to_string(),
+                        vec![
+                            "pkg".to_string(),
+                            "install".to_string(),
+                            "-y".to_string(),
+                            "postgresql16-client".to_string(),
+                        ],
+                    ))
                 }
-            } else { None }
+            } else {
+                None
+            }
         }
         Os::Unknown => None,
     }
@@ -597,21 +730,26 @@ fn check_package_manager(os: Os, distro: Option<&str>) -> Option<&'static str> {
     match os {
         Os::MacOS => command_exists("brew").then_some("Homebrew"),
         Os::Linux => match distro {
-            Some("ubuntu") | Some("debian") | Some("pop") | Some("mint") | Some("elementary") | Some("linuxmint") => {
-                command_exists("apt").then_some("apt")
-            }
+            Some("ubuntu") | Some("debian") | Some("pop") | Some("mint") | Some("elementary")
+            | Some("linuxmint") => command_exists("apt").then_some("apt"),
             Some("fedora") => command_exists("dnf").then_some("dnf"),
             Some("rhel") | Some("centos") | Some("rocky") | Some("alma") | Some("ol") => {
-                if command_exists("dnf") { Some("dnf") }
-                else if command_exists("yum") { Some("yum") }
-                else { None }
+                if command_exists("dnf") {
+                    Some("dnf")
+                } else if command_exists("yum") {
+                    Some("yum")
+                } else {
+                    None
+                }
             }
             Some("arch") | Some("manjaro") | Some("endeavouros") | Some("garuda") => {
                 command_exists("pacman").then_some("pacman")
             }
-            Some("opensuse") | Some("opensuse-leap") | Some("opensuse-tumbleweed") | Some("suse") | Some("sles") => {
-                command_exists("zypper").then_some("zypper")
-            }
+            Some("opensuse")
+            | Some("opensuse-leap")
+            | Some("opensuse-tumbleweed")
+            | Some("suse")
+            | Some("sles") => command_exists("zypper").then_some("zypper"),
             Some("alpine") => command_exists("apk").then_some("apk"),
             Some("nixos") => Some("nix"),
             Some("gentoo") => command_exists("emerge").then_some("portage"),
@@ -619,10 +757,15 @@ fn check_package_manager(os: Os, distro: Option<&str>) -> Option<&'static str> {
             _ => None,
         },
         Os::Windows => {
-            if command_exists("choco") { Some("Chocolatey") }
-            else if command_exists("scoop") { Some("Scoop") }
-            else if command_exists("winget") { Some("winget") }
-            else { None }
+            if command_exists("choco") {
+                Some("Chocolatey")
+            } else if command_exists("scoop") {
+                Some("Scoop")
+            } else if command_exists("winget") {
+                Some("winget")
+            } else {
+                None
+            }
         }
         Os::FreeBSD => command_exists("pkg").then_some("pkg"),
         Os::Unknown => None,
@@ -653,19 +796,15 @@ fn install_pg_tools(os: Os, distro: Option<&str>) -> Result<bool> {
     if status.success() {
         if os == Os::MacOS {
             println!();
-            println!(
-                "     {}Creating symlinks...",
-                GEAR
-            );
-            let _ = Command::new("brew").args(["link", "--force", "libpq"]).status();
+            println!("     {}Creating symlinks...", GEAR);
+            let _ = Command::new("brew")
+                .args(["link", "--force", "libpq"])
+                .status();
         }
 
         if os == Os::Windows {
             println!();
-            println!(
-                "     {}You may need to restart your terminal.",
-                INFO
-            );
+            println!("     {}You may need to restart your terminal.", INFO);
         }
 
         Ok(true)
@@ -694,7 +833,11 @@ fn confirm(prompt: &str) -> bool {
 
 pub fn run(args: DoctorArgs) -> Result<()> {
     let os = Os::detect();
-    let distro = if os == Os::Linux { detect_linux_distro() } else { None };
+    let distro = if os == Os::Linux {
+        detect_linux_distro()
+    } else {
+        None
+    };
     let distro_ref = distro.as_deref();
     let pkg_manager = check_package_manager(os, distro_ref);
 
@@ -716,7 +859,11 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     print_tools(&required, &optional);
 
     // Check if all required tools are found
-    let missing: Vec<&str> = required.iter().filter(|t| !t.found).map(|t| t.name).collect();
+    let missing: Vec<&str> = required
+        .iter()
+        .filter(|t| !t.found)
+        .map(|t| t.name)
+        .collect();
 
     if missing.is_empty() {
         print_success();
@@ -741,17 +888,10 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                 return Ok(());
             } else {
                 println!();
-                println!(
-                    "     {}{}",
-                    CROSS,
-                    style("Installation failed.").red()
-                );
+                println!("     {}{}", CROSS, style("Installation failed.").red());
             }
         } else {
-            println!(
-                "     {}No supported package manager detected.",
-                WARNING
-            );
+            println!("     {}No supported package manager detected.", WARNING);
         }
         println!();
     } else if get_install_command(os, distro_ref).is_some() {
@@ -769,11 +909,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                 return Ok(());
             } else {
                 println!();
-                println!(
-                    "     {}{}",
-                    CROSS,
-                    style("Installation failed.").red()
-                );
+                println!("     {}{}", CROSS, style("Installation failed.").red());
             }
         }
         println!();

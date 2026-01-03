@@ -17,7 +17,7 @@ static ROCKET: Emoji<'_, '_> = Emoji("🚀 ", "");
 static GEAR: Emoji<'_, '_> = Emoji("⚙️  ", "");
 
 /// Arguments for the doctor command
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct DoctorArgs {
     pub fix: bool,
 }
@@ -43,35 +43,35 @@ enum Os {
 impl Os {
     fn detect() -> Self {
         if cfg!(target_os = "macos") {
-            Os::MacOS
+            Self::MacOS
         } else if cfg!(target_os = "linux") {
-            Os::Linux
+            Self::Linux
         } else if cfg!(target_os = "windows") {
-            Os::Windows
+            Self::Windows
         } else if cfg!(target_os = "freebsd") {
-            Os::FreeBSD
+            Self::FreeBSD
         } else {
-            Os::Unknown
+            Self::Unknown
         }
     }
 
-    fn name(&self) -> &'static str {
+    fn name(self) -> &'static str {
         match self {
-            Os::MacOS => "macOS",
-            Os::Linux => "Linux",
-            Os::Windows => "Windows",
-            Os::FreeBSD => "FreeBSD",
-            Os::Unknown => "Unknown OS",
+            Self::MacOS => "macOS",
+            Self::Linux => "Linux",
+            Self::Windows => "Windows",
+            Self::FreeBSD => "FreeBSD",
+            Self::Unknown => "Unknown OS",
         }
     }
 
-    fn emoji(&self) -> &'static str {
+    fn emoji(self) -> &'static str {
         match self {
-            Os::MacOS => "🍎",
-            Os::Linux => "🐧",
-            Os::Windows => "🪟",
-            Os::FreeBSD => "😈",
-            Os::Unknown => "❓",
+            Self::MacOS => "🍎",
+            Self::Linux => "🐧",
+            Self::Windows => "🪟",
+            Self::FreeBSD => "😈",
+            Self::Unknown => "❓",
         }
     }
 }
@@ -207,7 +207,7 @@ fn check_tool(name: &'static str, version_args: &[&str]) -> ToolStatus {
 fn print_header() {
     let width = 35;
     let title = "Supamigrate Doctor";
-    let padding = width - title.len() - 2; // -2 for spaces around title
+    let padding = width - title.len() - 2;
 
     println!();
     println!("  ╭{}╮", "─".repeat(width));
@@ -240,7 +240,6 @@ fn print_system_info(os: Os, distro: Option<&str>, pkg_manager: Option<&str>) {
         );
     }
 
-    // Show architecture for macOS
     if os == Os::MacOS {
         let arch = if cfg!(target_arch = "aarch64") {
             "Apple Silicon"
@@ -277,14 +276,13 @@ fn print_system_info(os: Os, distro: Option<&str>, pkg_manager: Option<&str>) {
 fn print_tool_status(tool: &ToolStatus, required: bool) {
     if tool.found {
         let version = tool.version.as_deref().unwrap_or("installed");
-        // Extract just the version number if possible
         let short_version = extract_version(version);
 
         println!(
             "     {}{}  {}",
             CHECKMARK,
             style(tool.name).green().bold(),
-            style(format!("v{}", short_version)).dim()
+            style(format!("v{short_version}")).dim()
         );
 
         if let Some(path) = &tool.path {
@@ -303,24 +301,15 @@ fn print_tool_status(tool: &ToolStatus, required: bool) {
 
 /// Extract version number from version string
 fn extract_version(version: &str) -> String {
-    // Try to extract version like "14.20" from "pg_dump (PostgreSQL) 14.20 (Homebrew)"
-    // Or "475" from "Apple gzip 475"
     let parts: Vec<&str> = version.split_whitespace().collect();
 
     for part in parts.iter().rev() {
-        // Look for a version-like pattern (starts with digit)
         let clean = part.trim_matches(|c| c == '(' || c == ')');
-        if clean
-            .chars()
-            .next()
-            .map(|c| c.is_ascii_digit())
-            .unwrap_or(false)
-        {
+        if clean.chars().next().is_some_and(|c| c.is_ascii_digit()) {
             return clean.to_string();
         }
     }
 
-    // Fallback: return first 20 chars
     version.chars().take(20).collect()
 }
 
@@ -346,7 +335,7 @@ fn print_tools(required: &[ToolStatus], optional: &[ToolStatus]) {
 fn print_success() {
     let width = 35;
     let text = "All systems go!";
-    let content_len = 3 + text.len(); // emoji width ~2 + space + text
+    let content_len = 3 + text.len();
     let padding = width - content_len - 2;
 
     println!("  {}", style(format!("╭{}╮", "─".repeat(width))).green());
@@ -368,7 +357,7 @@ fn print_success() {
 fn print_failure(missing: &[&str]) {
     let width = 35;
     let text = "Missing dependencies";
-    let prefix_len = 3; // emoji width ~2 + space
+    let prefix_len = 3;
     let content_len = prefix_len + text.len();
     let padding = width - content_len - 2;
 
@@ -441,7 +430,7 @@ fn get_install_instructions(os: Os, distro: Option<&str>) -> String {
         Os::MacOS => {
             let prefix = get_homebrew_prefix();
             format!(
-                r#"Install via Homebrew (recommended):
+                "Install via Homebrew (recommended):
   brew install libpq
   brew link --force libpq
 
@@ -449,60 +438,55 @@ Or install full PostgreSQL:
   brew install postgresql@16
 
 Note: If pg_dump is still not found, add to PATH:
-  echo 'export PATH="{prefix}/opt/libpq/bin:$PATH"' >> ~/.zshrc"#
+  echo 'export PATH=\"{prefix}/opt/libpq/bin:$PATH\"' >> ~/.zshrc"
             )
         }
         Os::Linux => match distro {
-            Some("ubuntu") | Some("debian") | Some("pop") | Some("mint") | Some("elementary")
-            | Some("linuxmint") => r#"Install via apt:
-  sudo apt update && sudo apt install postgresql-client"#
-                .to_string(),
-            Some("fedora") => r#"Install via dnf:
-  sudo dnf install postgresql"#
-                .to_string(),
-            Some("rhel") | Some("centos") | Some("rocky") | Some("alma") | Some("ol") => {
-                r#"Install via yum/dnf:
-  sudo dnf install postgresql"#
+            Some("ubuntu" | "debian" | "pop" | "mint" | "elementary" | "linuxmint") => {
+                "Install via apt:
+  sudo apt update && sudo apt install postgresql-client"
                     .to_string()
             }
-            Some("arch") | Some("manjaro") | Some("endeavouros") | Some("garuda") => {
-                r#"Install via pacman:
-  sudo pacman -S postgresql-libs"#
+            Some("fedora") => "Install via dnf:
+  sudo dnf install postgresql"
+                .to_string(),
+            Some("rhel" | "centos" | "rocky" | "alma" | "ol") => "Install via yum/dnf:
+  sudo dnf install postgresql"
+                .to_string(),
+            Some("arch" | "manjaro" | "endeavouros" | "garuda") => "Install via pacman:
+  sudo pacman -S postgresql-libs"
+                .to_string(),
+            Some("opensuse" | "opensuse-leap" | "opensuse-tumbleweed" | "suse" | "sles") => {
+                "Install via zypper:
+  sudo zypper install postgresql"
                     .to_string()
             }
-            Some("opensuse")
-            | Some("opensuse-leap")
-            | Some("opensuse-tumbleweed")
-            | Some("suse")
-            | Some("sles") => r#"Install via zypper:
-  sudo zypper install postgresql"#
+            Some("alpine") => "Install via apk:
+  apk add postgresql-client"
                 .to_string(),
-            Some("alpine") => r#"Install via apk:
-  apk add postgresql-client"#
-                .to_string(),
-            Some("nixos") => r#"Add to configuration.nix:
+            Some("nixos") => "Add to configuration.nix:
   environment.systemPackages = [ pkgs.postgresql ];
 
 Then rebuild:
-  sudo nixos-rebuild switch"#
+  sudo nixos-rebuild switch"
                 .to_string(),
-            Some("gentoo") => r#"Install via emerge:
-  sudo emerge --ask dev-db/postgresql"#
+            Some("gentoo") => "Install via emerge:
+  sudo emerge --ask dev-db/postgresql"
                 .to_string(),
-            Some("void") => r#"Install via xbps:
-  sudo xbps-install postgresql-client"#
+            Some("void") => "Install via xbps:
+  sudo xbps-install postgresql-client"
                 .to_string(),
-            _ => r#"For Debian/Ubuntu:
+            _ => "For Debian/Ubuntu:
   sudo apt install postgresql-client
 
 For Fedora/RHEL:
   sudo dnf install postgresql
 
 For Arch Linux:
-  sudo pacman -S postgresql-libs"#
+  sudo pacman -S postgresql-libs"
                 .to_string(),
         },
-        Os::Windows => r#"Option 1 - Chocolatey (recommended):
+        Os::Windows => "Option 1 - Chocolatey (recommended):
   choco install postgresql
 
 Option 2 - Scoop:
@@ -512,13 +496,13 @@ Option 3 - winget:
   winget install PostgreSQL.PostgreSQL
 
 After installation, add to PATH:
-  C:\Program Files\PostgreSQL\16\bin"#
+  C:\\Program Files\\PostgreSQL\\16\\bin"
             .to_string(),
-        Os::FreeBSD => r#"Install via pkg:
-  sudo pkg install postgresql16-client"#
+        Os::FreeBSD => "Install via pkg:
+  sudo pkg install postgresql16-client"
             .to_string(),
-        Os::Unknown => r#"Please install PostgreSQL client tools for your OS.
-  https://www.postgresql.org/download/"#
+        Os::Unknown => "Please install PostgreSQL client tools for your OS.
+  https://www.postgresql.org/download/"
             .to_string(),
     }
 }
@@ -545,8 +529,7 @@ fn get_install_command(os: Os, distro: Option<&str>) -> Option<(String, Vec<Stri
             };
 
             match distro {
-                Some("ubuntu") | Some("debian") | Some("pop") | Some("mint")
-                | Some("elementary") | Some("linuxmint") => {
+                Some("ubuntu" | "debian" | "pop" | "mint" | "elementary" | "linuxmint") => {
                     if command_exists("apt-get") {
                         base_cmd.extend([
                             "apt-get".to_string(),
@@ -573,7 +556,7 @@ fn get_install_command(os: Os, distro: Option<&str>) -> Option<(String, Vec<Stri
                         None
                     }
                 }
-                Some("rhel") | Some("centos") | Some("rocky") | Some("alma") | Some("ol") => {
+                Some("rhel" | "centos" | "rocky" | "alma" | "ol") => {
                     if command_exists("dnf") {
                         base_cmd.extend([
                             "dnf".to_string(),
@@ -594,7 +577,7 @@ fn get_install_command(os: Os, distro: Option<&str>) -> Option<(String, Vec<Stri
                         None
                     }
                 }
-                Some("arch") | Some("manjaro") | Some("endeavouros") | Some("garuda") => {
+                Some("arch" | "manjaro" | "endeavouros" | "garuda") => {
                     if command_exists("pacman") {
                         base_cmd.extend([
                             "pacman".to_string(),
@@ -607,11 +590,7 @@ fn get_install_command(os: Os, distro: Option<&str>) -> Option<(String, Vec<Stri
                         None
                     }
                 }
-                Some("opensuse")
-                | Some("opensuse-leap")
-                | Some("opensuse-tumbleweed")
-                | Some("suse")
-                | Some("sles") => {
+                Some("opensuse" | "opensuse-leap" | "opensuse-tumbleweed" | "suse" | "sles") => {
                     if command_exists("zypper") {
                         base_cmd.extend([
                             "zypper".to_string(),
@@ -730,10 +709,11 @@ fn check_package_manager(os: Os, distro: Option<&str>) -> Option<&'static str> {
     match os {
         Os::MacOS => command_exists("brew").then_some("Homebrew"),
         Os::Linux => match distro {
-            Some("ubuntu") | Some("debian") | Some("pop") | Some("mint") | Some("elementary")
-            | Some("linuxmint") => command_exists("apt").then_some("apt"),
+            Some("ubuntu" | "debian" | "pop" | "mint" | "elementary" | "linuxmint") => {
+                command_exists("apt").then_some("apt")
+            }
             Some("fedora") => command_exists("dnf").then_some("dnf"),
-            Some("rhel") | Some("centos") | Some("rocky") | Some("alma") | Some("ol") => {
+            Some("rhel" | "centos" | "rocky" | "alma" | "ol") => {
                 if command_exists("dnf") {
                     Some("dnf")
                 } else if command_exists("yum") {
@@ -742,14 +722,12 @@ fn check_package_manager(os: Os, distro: Option<&str>) -> Option<&'static str> {
                     None
                 }
             }
-            Some("arch") | Some("manjaro") | Some("endeavouros") | Some("garuda") => {
+            Some("arch" | "manjaro" | "endeavouros" | "garuda") => {
                 command_exists("pacman").then_some("pacman")
             }
-            Some("opensuse")
-            | Some("opensuse-leap")
-            | Some("opensuse-tumbleweed")
-            | Some("suse")
-            | Some("sles") => command_exists("zypper").then_some("zypper"),
+            Some("opensuse" | "opensuse-leap" | "opensuse-tumbleweed" | "suse" | "sles") => {
+                command_exists("zypper").then_some("zypper")
+            }
             Some("alpine") => command_exists("apk").then_some("apk"),
             Some("nixos") => Some("nix"),
             Some("gentoo") => command_exists("emerge").then_some("portage"),
@@ -886,10 +864,9 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                 println!();
                 print_tip("Run 'supamigrate doctor' again to verify.");
                 return Ok(());
-            } else {
-                println!();
-                println!("     {}{}", CROSS, style("Installation failed.").red());
             }
+            println!();
+            println!("     {}{}", CROSS, style("Installation failed.").red());
         } else {
             println!("     {}No supported package manager detected.", WARNING);
         }
@@ -907,10 +884,9 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                 println!();
                 print_tip("Run 'supamigrate doctor' again to verify.");
                 return Ok(());
-            } else {
-                println!();
-                println!("     {}{}", CROSS, style("Installation failed.").red());
             }
+            println!();
+            println!("     {}{}", CROSS, style("Installation failed.").red());
         }
         println!();
     }

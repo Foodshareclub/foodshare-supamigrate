@@ -36,5 +36,6 @@ async fn main() -> Result<()> {
         Commands::Restore(args) => commands::restore::run(args).await,
         Commands::Storage(args) => commands::storage::run(args).await,
         Commands::Config(args) => commands::config::run(args),
+        Commands::Doctor(args) => commands::doctor::run(commands::doctor::DoctorArgs { fix: args.fix }),
     }
 }

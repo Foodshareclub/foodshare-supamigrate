@@ -37,6 +37,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 indicatif = "0.17"
 console = "0.15"
+atty = "0.2"
 
 # Utilities
 url = "2.5"
@@ -49,6 +50,10 @@ shellexpand = "3.1"
 tokio-util = { version = "0.7", features = ["io"] }
 bytes = "1.9"
 tar = "0.4"
+
+# Unix utilities (for root detection)
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [dev-dependencies]
 assert_cmd = "2.0"

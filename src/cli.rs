@@ -39,6 +39,16 @@ pub enum Commands {
 
     /// Manage configuration
     Config(ConfigArgs),
+
+    /// Check system dependencies and show installation instructions
+    Doctor(DoctorArgs),
+}
+
+#[derive(Parser)]
+pub struct DoctorArgs {
+    /// Attempt to automatically install missing dependencies
+    #[arg(long, default_value = "false")]
+    pub fix: bool,
 }
 
 #[derive(Parser)]

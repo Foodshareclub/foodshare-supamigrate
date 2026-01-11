@@ -40,16 +40,21 @@ src/
 │   ├── backup.rs   # Backup to local disk
 │   ├── restore.rs  # Restore from backup
 │   ├── storage.rs  # Storage-only operations (list, sync, download, upload)
+│   ├── vault.rs    # Vault secrets management (list, export, import, copy)
+│   ├── secrets.rs  # Edge function secrets (list names)
+│   ├── doctor.rs   # System dependency checks
 │   └── config.rs   # Config management (init, add, list, show)
 ├── db/             # Database operations using pg_dump/psql
-│   ├── dump.rs     # pg_dump wrapper
+│   ├── dump.rs     # pg_dump wrapper with auto-version detection
 │   ├── restore.rs  # psql restore
+│   ├── vault.rs    # Supabase Vault secrets via SQL
 │   └── transform.rs# SQL transformations
 ├── storage/        # Supabase Storage API client
 │   ├── client.rs   # HTTP client for storage operations
 │   └── transfer.rs # Parallel file transfers with progress
 └── functions/      # Edge Functions via Supabase Management API
-    └── client.rs   # Backup/restore Deno edge functions
+    ├── client.rs   # Backup/restore Deno edge functions
+    └── secrets.rs  # Edge function secrets API client
 ```
 
 ## Key Design Patterns
@@ -59,7 +64,8 @@ src/
 - **CLI parsing**: clap with derive macros and env var support
 - **Error handling**: thiserror for library errors, anyhow for application errors
 - **Progress display**: indicatif for progress bars on storage transfers
-- **Database operations**: Shell out to pg_dump/psql (PostgreSQL client tools required)
+- **Database operations**: Shell out to pg_dump/psql with automatic version detection
+- **Vault secrets**: Direct SQL queries to `vault.decrypted_secrets` view
 
 ## Configuration
 

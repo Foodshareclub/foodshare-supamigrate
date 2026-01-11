@@ -21,9 +21,11 @@ A fast, cross-platform CLI tool for migrating and backing up [Supabase](https://
 |---------|-------------|
 | **Full Migration** | Schema, data, triggers, RLS policies in one command |
 | **Edge Functions** | Backup and restore Deno edge functions via Management API |
+| **Vault Secrets** | Backup and restore Supabase Vault secrets with decrypted values |
 | **Storage Sync** | Parallel bucket transfers with progress bars |
 | **Backup & Restore** | Compressed backups with metadata |
 | **Flexible** | Schema-only, data-only, or selective migrations |
+| **Smart pg_dump** | Auto-detects PostgreSQL version and finds compatible client tools |
 
 ## Installation
 
@@ -61,14 +63,16 @@ PostgreSQL client tools required for database operations:
 
 ```bash
 # macOS
-brew install postgresql
+brew install postgresql@17  # Or your Supabase server version
 
 # Ubuntu/Debian
-sudo apt install postgresql-client
+sudo apt install postgresql-client-17
 
 # Windows (via Chocolatey)
 choco install postgresql
 ```
+
+> **Note:** Supamigrate automatically detects your Supabase PostgreSQL version and finds a compatible local `pg_dump` binary. If you have multiple PostgreSQL versions installed, it will select the right one.
 
 ## Quick Start
 
@@ -123,11 +127,27 @@ supamigrate migrate --from production --to staging --schema-only
 # Backup database
 supamigrate backup --project production
 
-# Full backup (database + storage + edge functions)
-supamigrate backup --project production --include-storage --include-functions
+# Full backup (database + storage + edge functions + vault secrets)
+supamigrate backup --project production --include-storage --include-functions --include-vault
 
 # Restore to another project
 supamigrate restore --from ./backup/production_20240115_120000 --to staging
+```
+
+### 4. Vault Secrets Management
+
+```bash
+# List vault secrets
+supamigrate vault list --project production
+
+# Export vault secrets (with decrypted values)
+supamigrate vault export --project production --output secrets.json
+
+# Import vault secrets
+supamigrate vault import --project staging --file secrets.json
+
+# Copy vault secrets between projects
+supamigrate vault copy --from production --to staging
 ```
 
 ## What Gets Backed Up
@@ -139,6 +159,10 @@ supamigrate restore --from ./backup/production_20240115_120000 --to staging
 | RLS policies | Always | - |
 | Storage buckets & files | Optional | `--include-storage` |
 | Edge Functions (Deno) | Optional | `--include-functions` |
+| Vault secrets (decrypted) | Optional | `--include-vault` |
+| Edge Function secret names | Optional | `--include-secrets` |
+
+> **Security Note:** Vault secrets are exported with decrypted values. Edge function secret *values* are not accessible via API — only names are backed up.
 
 ## Commands
 
@@ -149,8 +173,14 @@ supamigrate restore --from ./backup/production_20240115_120000 --to staging
 | `restore` | Restore from backup |
 | `storage list` | List storage buckets |
 | `storage sync` | Sync storage between projects |
+| `vault list` | List vault secrets |
+| `vault export` | Export vault secrets (with values) |
+| `vault import` | Import vault secrets |
+| `vault copy` | Copy vault secrets between projects |
+| `secrets list` | List edge function secret names |
 | `config init` | Create config file |
 | `config list` | List configured projects |
+| `doctor` | Check system dependencies |
 
 Run `supamigrate <command> --help` for details.
 

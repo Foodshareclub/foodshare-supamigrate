@@ -58,7 +58,7 @@ libc = "0.2"
 [dev-dependencies]
 assert_cmd = "2.0"
 predicates = "3.1"
-wiremock = "0.5"
+wiremock = "0.6"
 tokio-test = "0.4"
 
 [profile.release]

@@ -49,10 +49,7 @@ impl VaultClient {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(SupamigrateError::Vault(format!(
-                "Query failed: {}",
-                stderr
-            )));
+            return Err(SupamigrateError::Vault(format!("Query failed: {}", stderr)));
         }
 
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())

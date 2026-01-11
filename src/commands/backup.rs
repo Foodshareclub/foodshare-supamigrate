@@ -120,7 +120,10 @@ pub async fn run(args: BackupArgs) -> Result<()> {
             Some(secrets_backup) => {
                 secrets_count = secrets_backup.secrets.len();
                 let secrets_file = backup_dir.join("secrets.json");
-                fs::write(&secrets_file, serde_json::to_string_pretty(&secrets_backup)?)?;
+                fs::write(
+                    &secrets_file,
+                    serde_json::to_string_pretty(&secrets_backup)?,
+                )?;
                 info!("Secrets backup saved to: {}", secrets_file.display());
                 println!(
                     "{} Secrets backup complete: {} secret names (values not backed up for security)",
@@ -173,11 +176,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
                 );
             }
             Err(e) => {
-                println!(
-                    "{} Vault backup failed: {}",
-                    style("⚠").yellow(),
-                    e
-                );
+                println!("{} Vault backup failed: {}", style("⚠").yellow(), e);
             }
         }
     }

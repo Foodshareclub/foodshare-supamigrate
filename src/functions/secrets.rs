@@ -146,7 +146,9 @@ impl SecretsClient {
         let secrets = self.list_secrets().await?;
         Ok(SecretsBackup {
             secrets,
-            note: "Secret values cannot be backed up via API. You must provide values during restore.".to_string(),
+            note:
+                "Secret values cannot be backed up via API. You must provide values during restore."
+                    .to_string(),
         })
     }
 }

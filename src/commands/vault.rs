@@ -46,10 +46,7 @@ fn list_secrets(project_name: &str) -> Result<()> {
         println!("  No vault secrets found");
     } else {
         for secret in secrets {
-            let desc = secret
-                .description
-                .as_deref()
-                .unwrap_or("(no description)");
+            let desc = secret.description.as_deref().unwrap_or("(no description)");
             println!(
                 "  {} {} - {}",
                 style("•").cyan(),
@@ -153,10 +150,7 @@ fn import_secrets(project_name: &str, file: &Path) -> Result<()> {
     );
 
     for secret in &backup.secrets {
-        let desc = secret
-            .description
-            .as_deref()
-            .unwrap_or("(no description)");
+        let desc = secret.description.as_deref().unwrap_or("(no description)");
         println!("  {} {} - {}", style("•").cyan(), secret.name, desc);
     }
 
@@ -230,10 +224,7 @@ fn copy_secrets(from_name: &str, to_name: &str) -> Result<()> {
     );
 
     for secret in &backup.secrets {
-        let desc = secret
-            .description
-            .as_deref()
-            .unwrap_or("(no description)");
+        let desc = secret.description.as_deref().unwrap_or("(no description)");
         println!("  {} {} - {}", style("•").cyan(), secret.name, desc);
     }
 

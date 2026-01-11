@@ -62,10 +62,7 @@ fn find_compatible_pg_dump(server_major: u32) -> PathBuf {
 
         for path in paths {
             if Path::new(&path).exists() {
-                debug!(
-                    "Found compatible pg_dump v{} at: {}",
-                    version, path
-                );
+                debug!("Found compatible pg_dump v{} at: {}", version, path);
                 return PathBuf::from(path);
             }
         }

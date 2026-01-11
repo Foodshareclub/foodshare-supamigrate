@@ -13,7 +13,13 @@ pub fn run(args: ConfigArgs) -> Result<()> {
             db_password,
             service_key,
             access_token,
-        } => add_project(&alias, &project_ref, &db_password, service_key, access_token),
+        } => add_project(
+            &alias,
+            &project_ref,
+            &db_password,
+            service_key,
+            access_token,
+        ),
         ConfigCommands::List => list_projects(),
         ConfigCommands::Show => show_config(),
     }

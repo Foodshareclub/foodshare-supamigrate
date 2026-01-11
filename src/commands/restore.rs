@@ -75,10 +75,7 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     );
     if args.include_secrets && metadata.include_secrets {
         if let Some(ref secrets_file) = args.secrets_file {
-            println!(
-                "  Secrets file: {}",
-                secrets_file.display()
-            );
+            println!("  Secrets file: {}", secrets_file.display());
         } else {
             println!("  Secrets file: (will prompt for values)");
         }
@@ -204,12 +201,9 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
             if secrets_backup.secrets.is_empty() {
                 println!("{} No secrets in backup, skipping", style("ℹ").blue());
             } else {
-                let count = restore_secrets(
-                    &secrets_backup,
-                    &args.to,
-                    args.secrets_file.as_deref(),
-                )
-                .await?;
+                let count =
+                    restore_secrets(&secrets_backup, &args.to, args.secrets_file.as_deref())
+                        .await?;
 
                 if count > 0 {
                     println!(
@@ -225,10 +219,7 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
                 }
             }
         } else {
-            println!(
-                "{} No secrets backup found, skipping",
-                style("⚠️").yellow()
-            );
+            println!("{} No secrets backup found, skipping", style("⚠️").yellow());
         }
     }
 
@@ -255,19 +246,12 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
                         );
                     }
                     Err(e) => {
-                        println!(
-                            "{} Vault restore failed: {}",
-                            style("⚠").yellow(),
-                            e
-                        );
+                        println!("{} Vault restore failed: {}", style("⚠").yellow(), e);
                     }
                 }
             }
         } else {
-            println!(
-                "{} No vault backup found, skipping",
-                style("⚠️").yellow()
-            );
+            println!("{} No vault backup found, skipping", style("⚠️").yellow());
         }
     }
 

@@ -434,7 +434,7 @@ jobs:
 
       - name: Generate attestation
         if: runner.os != 'Windows' && needs.metadata.outputs.is_release == 'true'
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: supamigrate-${{ matrix.name }}.tar.gz
 

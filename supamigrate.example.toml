@@ -6,13 +6,13 @@
 project_ref = "your-project-ref"          # From Supabase dashboard URL
 db_password = "your-database-password"    # Database password
 service_key = "your-service-role-key"     # Service role JWT (not anon key)
-access_token = "sbp_xxxxxxxxxxxxx"        # Personal access token (for edge functions)
+access_token = "sbp_xxxxxxxxxxxxx"        # Personal access token (for secrets) - get at supabase.com/dashboard/account/tokens
 
 [projects.staging]
 project_ref = "your-staging-ref"
 db_password = "staging-password"
 service_key = "staging-service-key"
-access_token = "sbp_xxxxxxxxxxxxx"
+access_token = "sbp_xxxxxxxxxxxxx"        # Required for secrets backup/restore
 
 [defaults]
 parallel_transfers = 4    # Concurrent file uploads/downloads

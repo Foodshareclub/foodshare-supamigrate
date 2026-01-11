@@ -41,6 +41,11 @@ pub struct ProjectConfig {
     /// Custom API URL (defaults to https://{project_ref}.supabase.co)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_url: Option<String>,
+
+    /// Personal access token (required for secrets operations)
+    /// Generate at: https://supabase.com/dashboard/account/tokens
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub access_token: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -165,6 +170,11 @@ impl ProjectConfig {
     pub fn has_storage_access(&self) -> bool {
         self.service_key.is_some()
     }
+
+    /// Check if secrets operations are available
+    pub fn has_secrets_access(&self) -> bool {
+        self.access_token.is_some()
+    }
 }
 
 /// Generate a sample config file
@@ -177,11 +187,13 @@ pub fn generate_sample_config() -> String {
 project_ref = "your-prod-project-ref"
 db_password = "your-db-password"
 service_key = "your-service-role-key"  # Optional, needed for storage
+access_token = "sbp_xxx"  # Optional, needed for secrets (https://supabase.com/dashboard/account/tokens)
 
 [projects.staging]
 project_ref = "your-staging-project-ref"
 db_password = "your-db-password"
 service_key = "your-service-role-key"
+access_token = "sbp_xxx"
 
 # Default settings
 [defaults]

@@ -3,4 +3,6 @@ pub mod config;
 pub mod doctor;
 pub mod migrate;
 pub mod restore;
+pub mod secrets;
 pub mod storage;
+pub mod vault;

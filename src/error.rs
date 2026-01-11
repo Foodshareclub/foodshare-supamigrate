@@ -33,6 +33,12 @@ pub enum SupamigrateError {
     #[error("Edge Functions error: {0}")]
     Functions(String),
 
+    #[error("Secrets error: {0}")]
+    Secrets(String),
+
+    #[error("Vault error: {0}")]
+    Vault(String),
+
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 

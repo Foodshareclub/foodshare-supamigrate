@@ -1,7 +1,10 @@
 use crate::cli::RestoreArgs;
+use crate::commands::secrets::restore_secrets;
+use crate::commands::vault::restore_vault;
 use crate::config::Config;
-use crate::db::{PgRestore, SqlTransformer};
+use crate::db::{PgRestore, SqlTransformer, VaultBackup};
 use crate::error::SupamigrateError;
+use crate::functions::secrets::SecretsBackup;
 use crate::functions::{FunctionBackup, FunctionFile, FunctionsClient};
 use crate::storage::StorageClient;
 use anyhow::Result;
@@ -21,6 +24,14 @@ struct BackupMetadata {
     include_storage: bool,
     #[serde(default)]
     include_functions: bool,
+    #[serde(default)]
+    include_secrets: bool,
+    #[serde(default)]
+    secrets_count: usize,
+    #[serde(default)]
+    include_vault: bool,
+    #[serde(default)]
+    vault_count: usize,
     compressed: bool,
 }
 
@@ -52,6 +63,34 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     println!(
         "  Include functions: {}",
         args.include_functions && metadata.include_functions
+    );
+    println!(
+        "  Include secrets: {} ({})",
+        args.include_secrets && metadata.include_secrets,
+        if metadata.include_secrets {
+            format!("{} secret names in backup", metadata.secrets_count)
+        } else {
+            "no secrets in backup".to_string()
+        }
+    );
+    if args.include_secrets && metadata.include_secrets {
+        if let Some(ref secrets_file) = args.secrets_file {
+            println!(
+                "  Secrets file: {}",
+                secrets_file.display()
+            );
+        } else {
+            println!("  Secrets file: (will prompt for values)");
+        }
+    }
+    println!(
+        "  Include vault: {} ({})",
+        args.include_vault && metadata.include_vault,
+        if metadata.include_vault {
+            format!("{} vault secrets in backup", metadata.vault_count)
+        } else {
+            "no vault secrets in backup".to_string()
+        }
     );
 
     if !args.yes {
@@ -147,6 +186,86 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
         } else {
             println!(
                 "{} No functions backup found, skipping",
+                style("⚠️").yellow()
+            );
+        }
+    }
+
+    // Secrets restore
+    if args.include_secrets && metadata.include_secrets {
+        println!("\n{} Restoring secrets...", style("🔐").bold());
+
+        let secrets_file = args.from.join("secrets.json");
+
+        if secrets_file.exists() {
+            let secrets_content = fs::read_to_string(&secrets_file)?;
+            let secrets_backup: SecretsBackup = serde_json::from_str(&secrets_content)?;
+
+            if secrets_backup.secrets.is_empty() {
+                println!("{} No secrets in backup, skipping", style("ℹ").blue());
+            } else {
+                let count = restore_secrets(
+                    &secrets_backup,
+                    &args.to,
+                    args.secrets_file.as_deref(),
+                )
+                .await?;
+
+                if count > 0 {
+                    println!(
+                        "{} Secrets restore complete: {} secrets set",
+                        style("✓").green(),
+                        count
+                    );
+                } else {
+                    println!(
+                        "{} No secrets were set (all skipped or empty values)",
+                        style("⚠").yellow()
+                    );
+                }
+            }
+        } else {
+            println!(
+                "{} No secrets backup found, skipping",
+                style("⚠️").yellow()
+            );
+        }
+    }
+
+    // Vault restore
+    if args.include_vault && metadata.include_vault {
+        println!("\n{} Restoring vault secrets...", style("🔐").bold());
+
+        let vault_file = args.from.join("vault_secrets.json");
+
+        if vault_file.exists() {
+            let vault_content = fs::read_to_string(&vault_file)?;
+            let vault_backup: VaultBackup = serde_json::from_str(&vault_content)?;
+
+            if vault_backup.secrets.is_empty() {
+                println!("{} No vault secrets in backup, skipping", style("ℹ").blue());
+            } else {
+                match restore_vault(&vault_backup, &args.to) {
+                    Ok(count) => {
+                        println!(
+                            "{} Vault restore complete: {} secrets created (skipped {} existing)",
+                            style("✓").green(),
+                            count,
+                            vault_backup.secrets.len() - count
+                        );
+                    }
+                    Err(e) => {
+                        println!(
+                            "{} Vault restore failed: {}",
+                            style("⚠").yellow(),
+                            e
+                        );
+                    }
+                }
+            }
+        } else {
+            println!(
+                "{} No vault backup found, skipping",
                 style("⚠️").yellow()
             );
         }

@@ -1,4 +1,6 @@
 use crate::cli::BackupArgs;
+use crate::commands::secrets::backup_secrets;
+use crate::commands::vault::backup_vault;
 use crate::config::Config;
 use crate::db::PgDump;
 use crate::functions::FunctionsClient;
@@ -27,6 +29,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     println!("  Schema only: {}", args.schema_only);
     println!("  Include storage: {}", args.include_storage);
     println!("  Include functions: {}", include_functions);
+    println!("  Include vault: {}", args.include_vault);
     println!("  Compress: {}", args.compress);
 
     // Database backup
@@ -108,6 +111,77 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         );
     }
 
+    // Secrets backup (if access_token available)
+    let mut secrets_count = 0;
+    if project.has_secrets_access() {
+        println!("\n{} Backing up secrets...", style("🔐").bold());
+
+        match backup_secrets(&args.project).await? {
+            Some(secrets_backup) => {
+                secrets_count = secrets_backup.secrets.len();
+                let secrets_file = backup_dir.join("secrets.json");
+                fs::write(&secrets_file, serde_json::to_string_pretty(&secrets_backup)?)?;
+                info!("Secrets backup saved to: {}", secrets_file.display());
+                println!(
+                    "{} Secrets backup complete: {} secret names (values not backed up for security)",
+                    style("✓").green(),
+                    secrets_count
+                );
+            }
+            None => {
+                println!(
+                    "{} Skipping secrets (no access_token configured)",
+                    style("⚠").yellow()
+                );
+            }
+        }
+    } else {
+        println!(
+            "\n{} Skipping secrets backup (no access_token configured)",
+            style("ℹ").blue()
+        );
+        println!(
+            "  Add access_token to config to backup secret names: https://supabase.com/dashboard/account/tokens"
+        );
+    }
+
+    // Vault backup (if --include-vault flag is set)
+    let mut vault_count = 0;
+    if args.include_vault {
+        println!("\n{} Backing up vault secrets...", style("🔐").bold());
+
+        match backup_vault(&args.project) {
+            Ok(Some(vault_backup)) => {
+                vault_count = vault_backup.secrets.len();
+                let vault_file = backup_dir.join("vault_secrets.json");
+                fs::write(&vault_file, serde_json::to_string_pretty(&vault_backup)?)?;
+                info!("Vault backup saved to: {}", vault_file.display());
+                println!(
+                    "{} Vault backup complete: {} secrets (with values)",
+                    style("✓").green(),
+                    vault_count
+                );
+                println!(
+                    "  {} vault_secrets.json contains decrypted values - store securely!",
+                    style("⚠").yellow()
+                );
+            }
+            Ok(None) => {
+                println!(
+                    "{} No vault secrets found or vault not enabled",
+                    style("ℹ").blue()
+                );
+            }
+            Err(e) => {
+                println!(
+                    "{} Vault backup failed: {}",
+                    style("⚠").yellow(),
+                    e
+                );
+            }
+        }
+    }
+
     // Storage backup
     if args.include_storage {
         println!("\n{} Backing up storage...", style("📦").bold());
@@ -134,6 +208,10 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         schema_only: args.schema_only,
         include_storage: args.include_storage,
         include_functions,
+        include_secrets: secrets_count > 0,
+        secrets_count,
+        include_vault: vault_count > 0,
+        vault_count,
         compressed: args.compress,
     };
 
@@ -153,5 +231,9 @@ struct BackupMetadata {
     schema_only: bool,
     include_storage: bool,
     include_functions: bool,
+    include_secrets: bool,
+    secrets_count: usize,
+    include_vault: bool,
+    vault_count: usize,
     compressed: bool,
 }

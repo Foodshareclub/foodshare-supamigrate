@@ -37,6 +37,12 @@ pub enum Commands {
     /// Storage-only operations
     Storage(StorageArgs),
 
+    /// Manage edge function secrets
+    Secrets(SecretsArgs),
+
+    /// Manage Supabase Vault secrets (encrypted database secrets)
+    Vault(VaultArgs),
+
     /// Manage configuration
     Config(ConfigArgs),
 
@@ -108,6 +114,10 @@ pub struct BackupArgs {
     #[arg(long, default_value = "false")]
     pub include_storage: bool,
 
+    /// Include Supabase Vault secrets (with actual values)
+    #[arg(long, default_value = "false")]
+    pub include_vault: bool,
+
     /// Exclude edge functions from backup (functions included by default)
     #[arg(long, default_value = "false")]
     pub no_functions: bool,
@@ -138,6 +148,18 @@ pub struct RestoreArgs {
     /// Include edge functions
     #[arg(long, default_value = "false")]
     pub include_functions: bool,
+
+    /// Include secrets (prompts for values if no secrets-file provided)
+    #[arg(long, default_value = "false")]
+    pub include_secrets: bool,
+
+    /// Env file with secret values for restore (NAME=value format)
+    #[arg(long)]
+    pub secrets_file: Option<PathBuf>,
+
+    /// Include Supabase Vault secrets from backup
+    #[arg(long, default_value = "false")]
+    pub include_vault: bool,
 
     /// Skip confirmation prompt
     #[arg(short = 'y', long, default_value = "false")]
@@ -210,6 +232,104 @@ pub enum StorageCommands {
 }
 
 #[derive(Parser)]
+pub struct SecretsArgs {
+    #[command(subcommand)]
+    pub command: SecretsCommands,
+}
+
+#[derive(Subcommand)]
+pub enum SecretsCommands {
+    /// List secret names in a project
+    List {
+        /// Project reference or alias
+        #[arg(long)]
+        project: String,
+    },
+
+    /// Export secret names to an env file template
+    Export {
+        /// Project reference or alias
+        #[arg(long)]
+        project: String,
+
+        /// Output file path
+        #[arg(short, long, default_value = "./secrets.env.template")]
+        output: PathBuf,
+    },
+
+    /// Import secrets from an env file
+    Import {
+        /// Target project reference or alias
+        #[arg(long)]
+        project: String,
+
+        /// Env file with secrets (NAME=value format)
+        #[arg(long)]
+        file: PathBuf,
+    },
+
+    /// Copy secrets between projects (prompts for values)
+    Copy {
+        /// Source project
+        #[arg(long)]
+        from: String,
+
+        /// Target project
+        #[arg(long)]
+        to: String,
+    },
+}
+
+#[derive(Parser)]
+pub struct VaultArgs {
+    #[command(subcommand)]
+    pub command: VaultCommands,
+}
+
+#[derive(Subcommand)]
+pub enum VaultCommands {
+    /// List vault secrets in a project (with decrypted values info)
+    List {
+        /// Project reference or alias
+        #[arg(long)]
+        project: String,
+    },
+
+    /// Export vault secrets to a JSON file (contains actual values!)
+    Export {
+        /// Project reference or alias
+        #[arg(long)]
+        project: String,
+
+        /// Output file path
+        #[arg(short, long, default_value = "./vault-secrets.json")]
+        output: PathBuf,
+    },
+
+    /// Import vault secrets from a JSON file
+    Import {
+        /// Target project reference or alias
+        #[arg(long)]
+        project: String,
+
+        /// JSON file with vault secrets
+        #[arg(long)]
+        file: PathBuf,
+    },
+
+    /// Copy vault secrets between projects
+    Copy {
+        /// Source project
+        #[arg(long)]
+        from: String,
+
+        /// Target project
+        #[arg(long)]
+        to: String,
+    },
+}
+
+#[derive(Parser)]
 pub struct ConfigArgs {
     #[command(subcommand)]
     pub command: ConfigCommands,
@@ -241,6 +361,10 @@ pub enum ConfigCommands {
         /// Service role key (for storage operations)
         #[arg(long)]
         service_key: Option<String>,
+
+        /// Personal access token (for secrets operations)
+        #[arg(long)]
+        access_token: Option<String>,
     },
 
     /// List configured projects

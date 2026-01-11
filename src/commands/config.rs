@@ -12,7 +12,8 @@ pub fn run(args: ConfigArgs) -> Result<()> {
             project_ref,
             db_password,
             service_key,
-        } => add_project(&alias, &project_ref, &db_password, service_key),
+            access_token,
+        } => add_project(&alias, &project_ref, &db_password, service_key, access_token),
         ConfigCommands::List => list_projects(),
         ConfigCommands::Show => show_config(),
     }
@@ -46,6 +47,7 @@ fn add_project(
     project_ref: &str,
     db_password: &str,
     service_key: Option<String>,
+    access_token: Option<String>,
 ) -> Result<()> {
     let config_path = std::path::Path::new("./supamigrate.toml");
 
@@ -62,6 +64,7 @@ fn add_project(
         db_host: None,
         db_port: None,
         api_url: None,
+        access_token,
     };
 
     config.add_project(alias.to_string(), project);
@@ -93,12 +96,18 @@ fn list_projects() -> Result<()> {
             } else {
                 style("✗").red()
             };
+            let secrets = if project.has_secrets_access() {
+                style("✓").green()
+            } else {
+                style("✗").red()
+            };
             println!(
-                "  {} {} → {} (storage: {})",
+                "  {} {} → {} (storage: {}, secrets: {})",
                 style("•").cyan(),
                 alias,
                 project.project_ref,
-                storage
+                storage,
+                secrets
             );
         }
     }
@@ -131,6 +140,14 @@ fn show_config() -> Result<()> {
         println!(
             "    service_key: {}",
             if project.service_key.is_some() {
+                "****"
+            } else {
+                "(not set)"
+            }
+        );
+        println!(
+            "    access_token: {}",
+            if project.access_token.is_some() {
                 "****"
             } else {
                 "(not set)"

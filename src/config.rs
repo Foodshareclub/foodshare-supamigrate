@@ -43,7 +43,7 @@ pub struct ProjectConfig {
     pub api_url: Option<String>,
 
     /// Personal access token (required for secrets operations)
-    /// Generate at: https://supabase.com/dashboard/account/tokens
+    /// Generate at: <https://supabase.com/dashboard/account/tokens>
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_token: Option<String>,
 }
